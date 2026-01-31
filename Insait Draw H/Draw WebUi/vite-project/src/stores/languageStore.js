@@ -119,6 +119,18 @@ export const translations = {
     
     // Language
     language: 'Language',
+    
+    // Page settings
+    page: 'Page',
+    pageSize: 'Page Size',
+    portrait: 'Portrait',
+    landscape: 'Landscape',
+    custom: 'Custom',
+    width: 'Width',
+    height: 'Height',
+    fitPageToView: 'Fit to View',
+    zoom100: 'Zoom 100%',
+    alignToPage: 'Align to Page',
   },
   uk: {
     // Інструменти
@@ -236,6 +248,18 @@ export const translations = {
     
     // Мова
     language: 'Мова',
+    
+    // Налаштування сторінки
+    page: 'Сторінка',
+    pageSize: 'Розмір сторінки',
+    portrait: 'Портрет',
+    landscape: 'Альбом',
+    custom: 'Власний',
+    width: 'Ширина',
+    height: 'Висота',
+    fitPageToView: 'Вмістити в вікно',
+    zoom100: 'Масштаб 100%',
+    alignToPage: 'Вирівняти до сторінки',
   },
 };
 

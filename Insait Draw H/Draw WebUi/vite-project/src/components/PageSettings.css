@@ -1,0 +1,159 @@
+.page-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #2a2a3e;
+  border-radius: 8px;
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.settings-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.87);
+  margin-bottom: 4px;
+}
+
+.preset-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.preset-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.preset-btn {
+  padding: 4px 8px;
+  font-size: 11px;
+  background: #1a1a2e;
+  border: 1px solid #0f3460;
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.87);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.preset-btn:hover {
+  background: #0f3460;
+  border-color: #4a90d9;
+}
+
+.preset-btn.active {
+  background: #4a90d9;
+  border-color: #6ab0ff;
+  color: white;
+}
+
+.custom-toggle {
+  width: 100%;
+  margin-top: 4px;
+}
+
+.custom-size {
+  background: #1a1a2e;
+  padding: 8px;
+  border-radius: 6px;
+  margin-top: 4px;
+}
+
+.size-inputs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.size-inputs label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+}
+
+.size-inputs label span {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.size-inputs input {
+  width: 100%;
+  padding: 4px 6px;
+  font-size: 12px;
+  background: #16213e;
+  border: 1px solid #0f3460;
+  border-radius: 4px;
+  color: white;
+  text-align: center;
+}
+
+.size-inputs input:focus {
+  outline: none;
+  border-color: #4a90d9;
+}
+
+.size-separator {
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 14px;
+  margin-top: 12px;
+}
+
+.apply-btn {
+  padding: 4px 10px;
+  font-size: 14px;
+  background: #1e5128;
+  border: 1px solid #2e7d32;
+  border-radius: 4px;
+  color: white;
+  cursor: pointer;
+  margin-top: 12px;
+}
+
+.apply-btn:hover {
+  background: #2e7d32;
+}
+
+.page-info {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 4px;
+}
+
+.zoom-section {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 8px;
+}
+
+.zoom-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.zoom-btn {
+  flex: 1;
+  padding: 6px 8px;
+  font-size: 11px;
+  background: #1a1a2e;
+  border: 1px solid #0f3460;
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.87);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.zoom-btn:hover {
+  background: #0f3460;
+  border-color: #4a90d9;
+}

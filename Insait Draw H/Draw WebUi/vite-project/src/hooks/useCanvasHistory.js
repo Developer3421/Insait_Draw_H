@@ -8,7 +8,7 @@ import { useEditorStore } from '../stores/editorStore';
 
 // History configuration
 const MAX_HISTORY_SIZE = 50;
-const DEBOUNCE_DELAY = 300;
+const DEBOUNCE_DELAY = 150; // Faster response for better UX
 
 // Global history storage (persists between component renders)
 const historyState = {
@@ -21,6 +21,7 @@ const historyState = {
 
 /**
  * Serializes canvas state for history storage
+ * Excludes page elements (artboard, shadow) from history
  * @param {fabric.Canvas} canvas 
  * @returns {string} JSON string of canvas state
  */
@@ -28,6 +29,14 @@ function serializeCanvas(canvas) {
   if (!canvas) return null;
   
   try {
+    // Get all objects except page elements
+    const allObjects = canvas.getObjects();
+    const userObjects = allObjects.filter(obj => !obj.data?.isPageElement);
+    
+    // Temporarily remove page elements for serialization
+    const pageElements = allObjects.filter(obj => obj.data?.isPageElement);
+    pageElements.forEach(obj => canvas.remove(obj));
+    
     // toJSON with custom properties to preserve
     const json = canvas.toJSON([
       'id', 
@@ -36,6 +45,13 @@ function serializeCanvas(canvas) {
       'name',
       'data', // custom data
     ]);
+    
+    // Restore page elements
+    pageElements.forEach(obj => {
+      canvas.add(obj);
+      canvas.sendObjectToBack(obj);
+    });
+    
     return JSON.stringify(json);
   } catch (err) {
     console.error('Error serializing canvas:', err);
@@ -45,6 +61,7 @@ function serializeCanvas(canvas) {
 
 /**
  * Deserializes and loads canvas state from history
+ * Preserves page elements (artboard, shadow)
  * @param {fabric.Canvas} canvas 
  * @param {string} stateJson 
  * @returns {Promise<void>}
@@ -55,16 +72,30 @@ async function deserializeCanvas(canvas, stateJson) {
   try {
     const state = JSON.parse(stateJson);
     
-    // Clear current objects
-    canvas.clear();
+    // Save page elements before clearing
+    const pageElements = canvas.getObjects().filter(obj => obj.data?.isPageElement);
+    
+    // Clear only non-page objects
+    const objectsToRemove = canvas.getObjects().filter(obj => !obj.data?.isPageElement);
+    objectsToRemove.forEach(obj => canvas.remove(obj));
     
     // Load from JSON - fabric.js v7 uses async loadFromJSON
+    // We need to temporarily clear and restore page elements
+    pageElements.forEach(obj => canvas.remove(obj));
     await canvas.loadFromJSON(state);
     
-    // Ensure all objects are selectable and evented
+    // Restore page elements at the back
+    pageElements.forEach(obj => {
+      canvas.add(obj);
+      canvas.sendObjectToBack(obj);
+    });
+    
+    // Ensure all user objects are selectable and evented
     canvas.getObjects().forEach(obj => {
-      if (obj.selectable === undefined) obj.selectable = true;
-      if (obj.evented === undefined) obj.evented = true;
+      if (!obj.data?.isPageElement) {
+        if (obj.selectable === undefined) obj.selectable = true;
+        if (obj.evented === undefined) obj.evented = true;
+      }
     });
     
     canvas.renderAll();
@@ -78,6 +109,7 @@ async function deserializeCanvas(canvas, stateJson) {
 
 /**
  * Syncs the store layers with canvas objects after undo/redo
+ * Excludes page elements from layers
  * @param {fabric.Canvas} canvas 
  */
 function syncLayersWithCanvas(canvas) {
@@ -86,7 +118,10 @@ function syncLayersWithCanvas(canvas) {
   const { setLayers } = useEditorStore.getState();
   const objects = canvas.getObjects();
   
-  const newLayers = objects.map((obj, index) => {
+  // Filter out page elements
+  const userObjects = objects.filter(obj => !obj.data?.isPageElement);
+  
+  const newLayers = userObjects.map((obj, index) => {
     // Generate id if not present
     if (!obj.id) {
       obj.id = `obj_${Date.now()}_${index}`;
@@ -284,7 +319,11 @@ export function useCanvasHistory() {
       'path:created',
     ];
     
-    const handleCanvasChange = () => {
+    const handleCanvasChange = (opt) => {
+      // Ignore changes to page elements (artboard, shadow)
+      if (opt && opt.target && opt.target.data?.isPageElement) {
+        return;
+      }
       saveState();
     };
     

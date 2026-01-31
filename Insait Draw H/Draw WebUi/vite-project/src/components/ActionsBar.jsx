@@ -2,6 +2,7 @@ import { useEditorStore, useHistoryState } from '../stores/editorStore';
 import { useLanguageStore } from '../stores/languageStore';
 import { useCallback, useEffect } from 'react';
 import { useCanvasHistory, getHistoryManager } from '../hooks/useCanvasHistory';
+import { getPageBounds } from '../hooks/useArtboard';
 import './ActionsBar.css';
 
 // Clipboard storage outside component to persist between renders
@@ -33,8 +34,17 @@ export function ActionsBar() {
   const handleClearCanvas = () => {
     if (!canvas) return;
     if (confirm(t('clearConfirm'))) {
-      canvas.clear();
-      canvas.backgroundColor = 'transparent';
+      // Save history state before clear
+      const historyManager = getHistoryManager();
+      historyManager.saveState(true);
+      
+      // Get all objects except page elements
+      const objectsToRemove = canvas.getObjects().filter(obj => !obj.data?.isPageElement);
+      
+      // Remove only user objects, keep page/shadow
+      objectsToRemove.forEach(obj => canvas.remove(obj));
+      
+      canvas.discardActiveObject();
       canvas.renderAll();
       clearLayers();
     }
@@ -42,11 +52,29 @@ export function ActionsBar() {
 
   const handleSaveImage = () => {
     if (!canvas) return;
+    
+    // Get page bounds for cropping
+    const pageBounds = getPageBounds();
+    
+    // Temporarily hide page elements for export
+    const pageElements = canvas.getObjects().filter(obj => obj.data?.isPageElement);
+    pageElements.forEach(obj => obj.set('visible', false));
+    
+    // Export only the page area
     const dataURL = canvas.toDataURL({
       format: 'png',
       quality: 1,
       multiplier: 2,
+      left: pageBounds.left,
+      top: pageBounds.top,
+      width: pageBounds.width,
+      height: pageBounds.height,
     });
+    
+    // Restore page elements visibility
+    pageElements.forEach(obj => obj.set('visible', true));
+    canvas.renderAll();
+    
     const link = document.createElement('a');
     link.download = `insait-draw-${Date.now()}.png`;
     link.href = dataURL;
@@ -96,6 +124,10 @@ export function ActionsBar() {
     if (!canvas) return;
     const activeObjects = canvas.getActiveObjects();
     if (activeObjects.length === 0) return;
+    
+    // Save history state before delete
+    const historyManager = getHistoryManager();
+    historyManager.saveState(true);
     
     const { layers, setLayers } = useEditorStore.getState();
     const objectIds = activeObjects.map(o => o.id);

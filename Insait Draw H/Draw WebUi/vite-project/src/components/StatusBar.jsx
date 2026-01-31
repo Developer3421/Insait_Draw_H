@@ -4,12 +4,17 @@ import './StatusBar.css';
 
 export function StatusBar() {
   const { t } = useLanguageStore();
-  const { zoom, layers, activeTool, canvas } = useEditorStore();
+  const { zoom, layers, activeTool, canvas, pageSettings } = useEditorStore();
   
   const selectedCount = canvas?.getActiveObjects()?.length || 0;
   
   return (
     <div className="status-bar">
+      <div className="status-item">
+        <span className="status-label">📄</span>
+        <span className="status-value">{pageSettings.name} ({pageSettings.width}×{pageSettings.height})</span>
+      </div>
+      
       <div className="status-item">
         <span className="status-label">{t('tool')}:</span>
         <span className="status-value">{activeTool}</span>
@@ -35,9 +40,8 @@ export function StatusBar() {
       <div className="status-hints">
         <span>{t('mouseWheelZoom')}</span>
         <span>{t('altDragPan')}</span>
-        <span>V: Select</span>
-        <span>B: Brush</span>
-        <span>R: Rect</span>
+        <span>Ctrl+0: 100%</span>
+        <span>Ctrl+1: Fit</span>
       </div>
     </div>
   );

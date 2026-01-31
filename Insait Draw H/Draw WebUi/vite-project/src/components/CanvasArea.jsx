@@ -1,6 +1,8 @@
 import { useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { useFabricCanvas } from '../hooks/useFabricCanvas';
+import { useArtboard, getPageBounds, zoomToPage100, zoomToFitPage } from '../hooks/useArtboard';
 import { useEditorStore, TOOLS } from '../stores/editorStore';
+import { getHistoryManager } from '../hooks/useCanvasHistory';
 import './CanvasArea.css';
 
 export function CanvasArea() {
@@ -10,13 +12,16 @@ export function CanvasArea() {
   const lastDimensionsRef = useRef({ width: 0, height: 0 });
   
   const { initCanvas } = useFabricCanvas(canvasRef, containerRef);
+  const { zoomToPage } = useArtboard(); // Initialize artboard
   const gridSize = useEditorStore((state) => state.gridSize);
   const zoom = useEditorStore((state) => state.zoom);
+  const pageSettings = useEditorStore((state) => state.pageSettings);
   
-  // Grid drawing function
+  // Grid drawing function - draws grid only within the page bounds
   const drawGrid = useCallback((forceRedraw = false) => {
     const gridCanvas = gridCanvasRef.current;
     const container = containerRef.current;
+    const canvas = useEditorStore.getState().canvas;
     if (!gridCanvas || !container) return;
     
     const rect = container.getBoundingClientRect();
@@ -42,46 +47,95 @@ export function CanvasArea() {
     const ctx = gridCanvas.getContext('2d');
     ctx.clearRect(0, 0, width, height);
     
-    const scaledGridSize = Math.max(gridSize * zoom, 5); // Min 5px
+    // Get page bounds and viewport transform
+    const pageBounds = getPageBounds();
+    if (!pageBounds) return;
     
-    // Draw minor grid lines - dark color for light background
-    ctx.strokeStyle = 'rgba(180, 160, 130, 0.35)';
+    // Get viewport transform from canvas (for pan/zoom)
+    let vpt = [1, 0, 0, 1, 0, 0];
+    let currentZoom = zoom;
+    if (canvas) {
+      vpt = canvas.viewportTransform || vpt;
+      currentZoom = canvas.getZoom() || zoom;
+    }
+    
+    // Calculate page position on screen considering viewport transform
+    const pageLeft = pageBounds.left * currentZoom + vpt[4];
+    const pageTop = pageBounds.top * currentZoom + vpt[5];
+    const pageWidth = pageBounds.width * currentZoom;
+    const pageHeight = pageBounds.height * currentZoom;
+    
+    // Only draw grid if page is visible
+    if (pageLeft > width || pageTop > height || 
+        pageLeft + pageWidth < 0 || pageTop + pageHeight < 0) {
+      return;
+    }
+    
+    // Clip to page bounds
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(
+      Math.max(0, pageLeft),
+      Math.max(0, pageTop),
+      Math.min(pageWidth, width - pageLeft),
+      Math.min(pageHeight, height - pageTop)
+    );
+    ctx.clip();
+    
+    const scaledGridSize = Math.max(gridSize * currentZoom, 5); // Min 5px
+    
+    // Calculate grid start positions (aligned to page, not canvas)
+    const gridStartX = pageLeft;
+    const gridStartY = pageTop;
+    
+    // Draw minor grid lines - subtle gray on white background
+    ctx.strokeStyle = 'rgba(200, 200, 200, 0.6)';
     ctx.lineWidth = 1;
     
     // Vertical lines
-    for (let x = 0; x <= width; x += scaledGridSize) {
-      ctx.beginPath();
-      ctx.moveTo(Math.floor(x) + 0.5, 0);
-      ctx.lineTo(Math.floor(x) + 0.5, height);
-      ctx.stroke();
+    for (let x = gridStartX; x <= pageLeft + pageWidth && x <= width; x += scaledGridSize) {
+      if (x >= 0) {
+        ctx.beginPath();
+        ctx.moveTo(Math.floor(x) + 0.5, Math.max(0, pageTop));
+        ctx.lineTo(Math.floor(x) + 0.5, Math.min(height, pageTop + pageHeight));
+        ctx.stroke();
+      }
     }
     
     // Horizontal lines
-    for (let y = 0; y <= height; y += scaledGridSize) {
-      ctx.beginPath();
-      ctx.moveTo(0, Math.floor(y) + 0.5);
-      ctx.lineTo(width, Math.floor(y) + 0.5);
-      ctx.stroke();
+    for (let y = gridStartY; y <= pageTop + pageHeight && y <= height; y += scaledGridSize) {
+      if (y >= 0) {
+        ctx.beginPath();
+        ctx.moveTo(Math.max(0, pageLeft), Math.floor(y) + 0.5);
+        ctx.lineTo(Math.min(width, pageLeft + pageWidth), Math.floor(y) + 0.5);
+        ctx.stroke();
+      }
     }
     
     // Draw major grid lines (every 5 cells) - darker
-    ctx.strokeStyle = 'rgba(150, 130, 100, 0.55)';
+    ctx.strokeStyle = 'rgba(150, 150, 150, 0.7)';
     ctx.lineWidth = 1;
     
-    for (let x = 0; x <= width; x += scaledGridSize * 5) {
-      ctx.beginPath();
-      ctx.moveTo(Math.floor(x) + 0.5, 0);
-      ctx.lineTo(Math.floor(x) + 0.5, height);
-      ctx.stroke();
+    for (let x = gridStartX; x <= pageLeft + pageWidth && x <= width; x += scaledGridSize * 5) {
+      if (x >= 0) {
+        ctx.beginPath();
+        ctx.moveTo(Math.floor(x) + 0.5, Math.max(0, pageTop));
+        ctx.lineTo(Math.floor(x) + 0.5, Math.min(height, pageTop + pageHeight));
+        ctx.stroke();
+      }
     }
     
-    for (let y = 0; y <= height; y += scaledGridSize * 5) {
-      ctx.beginPath();
-      ctx.moveTo(0, Math.floor(y) + 0.5);
-      ctx.lineTo(width, Math.floor(y) + 0.5);
-      ctx.stroke();
+    for (let y = gridStartY; y <= pageTop + pageHeight && y <= height; y += scaledGridSize * 5) {
+      if (y >= 0) {
+        ctx.beginPath();
+        ctx.moveTo(Math.max(0, pageLeft), Math.floor(y) + 0.5);
+        ctx.lineTo(Math.min(width, pageLeft + pageWidth), Math.floor(y) + 0.5);
+        ctx.stroke();
+      }
     }
-  }, [gridSize, zoom]);
+    
+    ctx.restore();
+  }, [gridSize, zoom, getPageBounds]);
   
   // Initialize canvas after mount
   useLayoutEffect(() => {
@@ -129,14 +183,35 @@ export function CanvasArea() {
   // Subscribe to store changes that might affect canvas and redraw grid
   useEffect(() => {
     const unsubscribe = useEditorStore.subscribe((state, prevState) => {
-      // Redraw grid when canvas is set or zoom changes
-      if (state.canvas !== prevState.canvas || state.zoom !== prevState.zoom) {
+      // Redraw grid when canvas is set, zoom changes, or page settings change
+      if (state.canvas !== prevState.canvas || 
+          state.zoom !== prevState.zoom ||
+          state.pageSettings !== prevState.pageSettings) {
         setTimeout(() => drawGrid(true), 50);
       }
     });
     
     return unsubscribe;
   }, [drawGrid]);
+  
+  // Subscribe to canvas events for pan redraw
+  useEffect(() => {
+    const canvas = useEditorStore.getState().canvas;
+    if (!canvas) return;
+    
+    const handleViewportChange = () => {
+      drawGrid(true);
+    };
+    
+    // Listen for viewport changes (pan, zoom)
+    canvas.on('mouse:move', handleViewportChange);
+    canvas.on('mouse:wheel', handleViewportChange);
+    
+    return () => {
+      canvas.off('mouse:move', handleViewportChange);
+      canvas.off('mouse:wheel', handleViewportChange);
+    };
+  }, [drawGrid, pageSettings]);
   
   // Keyboard shortcuts
   useEffect(() => {
@@ -164,9 +239,21 @@ export function CanvasArea() {
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (canvas) {
           const activeObjects = canvas.getActiveObjects();
-          activeObjects.forEach(obj => canvas.remove(obj));
-          canvas.discardActiveObject();
-          canvas.renderAll();
+          if (activeObjects.length > 0) {
+            // Save history state before delete
+            const historyManager = getHistoryManager();
+            historyManager.saveState(true);
+            
+            const { layers, setLayers } = useEditorStore.getState();
+            const objectIds = activeObjects.map(o => o.id);
+            
+            activeObjects.forEach(obj => canvas.remove(obj));
+            canvas.discardActiveObject();
+            canvas.renderAll();
+            
+            // Remove layers
+            setLayers(layers.filter(l => !objectIds.includes(l.objectId)));
+          }
         }
       }
       
@@ -194,11 +281,13 @@ export function CanvasArea() {
         }
         if (e.key === '0') {
           e.preventDefault();
-          setZoom(1);
-          if (canvas) {
-            canvas.setViewportTransform([1, 0, 0, 1, 0, 0]);
-            canvas.requestRenderAll();
-          }
+          // Zoom to 100% and center on page (like CorelDRAW)
+          zoomToPage100();
+        }
+        // Ctrl+1 - Fit page to view
+        if (e.key === '1') {
+          e.preventDefault();
+          zoomToFitPage();
         }
       }
     };

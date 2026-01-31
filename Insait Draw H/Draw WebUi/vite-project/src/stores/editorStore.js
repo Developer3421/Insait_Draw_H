@@ -1,8 +1,27 @@
 import { create } from 'zustand';
 import { v4 as uuidv4 } from 'uuid';
 
+// Пресети розмірів аркушів (у пікселях при 96 DPI)
+export const PAGE_PRESETS = {
+  A4: { width: 794, height: 1123, name: 'A4' }, // 210x297 mm at 96 DPI
+  A4_LANDSCAPE: { width: 1123, height: 794, name: 'A4 Landscape' },
+  A3: { width: 1123, height: 1587, name: 'A3' }, // 297x420 mm at 96 DPI
+  A3_LANDSCAPE: { width: 1587, height: 1123, name: 'A3 Landscape' },
+  LETTER: { width: 816, height: 1056, name: 'Letter' }, // 8.5x11 in at 96 DPI
+  LETTER_LANDSCAPE: { width: 1056, height: 816, name: 'Letter Landscape' },
+  HD: { width: 1920, height: 1080, name: 'HD 1080p' },
+  HD_PORTRAIT: { width: 1080, height: 1920, name: 'HD Portrait' },
+  SQUARE: { width: 1000, height: 1000, name: 'Square' },
+  CUSTOM: { width: 800, height: 600, name: 'Custom' },
+};
+
 // Кольори теми додатку
 export const THEME_COLORS = {
+  // Pasteboard (робочий простір за межами аркуша)
+  pasteboard: '#606060',
+  // Аркуш (page/artboard)
+  page: '#FFFFFF',
+  pageShadow: 'rgba(0, 0, 0, 0.3)',
   background: '#16213e',
   backgroundDark: '#0f0f1a',
   surface: '#1a1a2e',
@@ -45,6 +64,42 @@ const createEditorStore = (set, get) => ({
   // Канвас Fabric.js
   canvas: null,
   setCanvas: (canvas) => set({ canvas }),
+  
+  // Аркуш (Page/Artboard) - як в CorelDRAW
+  pageSettings: {
+    width: PAGE_PRESETS.A4.width,
+    height: PAGE_PRESETS.A4.height,
+    name: PAGE_PRESETS.A4.name,
+    preset: 'A4',
+  },
+  pageObject: null, // Reference to Fabric.Rect of the page
+  setPageSettings: (settings) => set((state) => ({
+    pageSettings: { ...state.pageSettings, ...settings }
+  })),
+  setPageObject: (obj) => set({ pageObject: obj }),
+  setPagePreset: (presetKey) => {
+    const preset = PAGE_PRESETS[presetKey];
+    if (preset) {
+      set({
+        pageSettings: {
+          width: preset.width,
+          height: preset.height,
+          name: preset.name,
+          preset: presetKey,
+        }
+      });
+    }
+  },
+  setCustomPageSize: (width, height) => {
+    set({
+      pageSettings: {
+        width: Math.max(100, width),
+        height: Math.max(100, height),
+        name: 'Custom',
+        preset: 'CUSTOM',
+      }
+    });
+  },
   
   // Активний інструмент
   activeTool: TOOLS.SELECT,
