@@ -1,6 +1,7 @@
-import { useEditorStore, useTemporalStore } from '../stores/editorStore';
+import { useEditorStore, useHistoryState } from '../stores/editorStore';
 import { useLanguageStore } from '../stores/languageStore';
 import { useCallback, useEffect } from 'react';
+import { useCanvasHistory, getHistoryManager } from '../hooks/useCanvasHistory';
 import './ActionsBar.css';
 
 // Clipboard storage outside component to persist between renders
@@ -16,14 +17,17 @@ export function ActionsBar() {
     clearLayers,
   } = useEditorStore();
   
-  const { undo, redo, pastStates, futureStates } = useTemporalStore((state) => state);
+  // Use new canvas history hook
+  const { undo, redo, canUndo, canRedo, saveState } = useCanvasHistory();
+  // Get history state from store for reactivity
+  const historyState = useHistoryState();
 
-  const handleUndo = useCallback(() => {
-    undo();
+  const handleUndo = useCallback(async () => {
+    await undo();
   }, [undo]);
 
-  const handleRedo = useCallback(() => {
-    redo();
+  const handleRedo = useCallback(async () => {
+    await redo();
   }, [redo]);
 
   const handleClearCanvas = () => {
@@ -220,8 +224,9 @@ export function ActionsBar() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleCopySelected, handlePaste, handleDeleteSelected, handleUndo, handleRedo]);
 
-  const canUndo = pastStates && pastStates.length > 0;
-  const canRedo = futureStates && futureStates.length > 0;
+  // Use historyState from store for reactive UI updates
+  const canUndoBtn = historyState?.canUndo ?? canUndo;
+  const canRedoBtn = historyState?.canRedo ?? canRedo;
 
   return (
     <div className="actions-bar">
@@ -231,7 +236,7 @@ export function ActionsBar() {
           <button
             className="action-btn"
             onClick={handleUndo}
-            disabled={!canUndo}
+            disabled={!canUndoBtn}
             title={`${t('undo')} (Ctrl+Z)`}
           >
             ↩️ {t('undo')}
@@ -239,7 +244,7 @@ export function ActionsBar() {
           <button
             className="action-btn"
             onClick={handleRedo}
-            disabled={!canRedo}
+            disabled={!canRedoBtn}
             title={`${t('redo')} (Ctrl+Y)`}
           >
             ↪️ {t('redo')}

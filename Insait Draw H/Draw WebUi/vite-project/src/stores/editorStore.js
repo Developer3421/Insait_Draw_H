@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import { temporal } from 'zundo';
 import { v4 as uuidv4 } from 'uuid';
 
 // Кольори теми додатку
@@ -285,26 +284,27 @@ const createEditorStore = (set, get) => ({
   
   // Оновити шари
   setLayers: (layers) => set({ layers }),
+  
+  // Стан історії (undo/redo)
+  historyState: {
+    canUndo: false,
+    canRedo: false,
+    pastCount: 0,
+    futureCount: 0,
+  },
+  setHistoryState: (historyState) => set({ historyState }),
 });
 
-// Створюємо store з історією (undo/redo)
-export const useEditorStore = create(
-  temporal(createEditorStore, {
-    limit: 50, // Глибина історії 50 кроків
-    equality: (pastState, currentState) => {
-      // Порівнюємо тільки важливі частини стану
-      return (
-        pastState.layers === currentState.layers &&
-        pastState.zoom === currentState.zoom
-      );
-    },
-    partialize: (state) => ({
-      layers: state.layers,
-      zoom: state.zoom,
-      panOffset: state.panOffset,
-    }),
-  })
-);
+// Створюємо store без zundo (історія управляється через useCanvasHistory)
+export const useEditorStore = create(createEditorStore);
 
-// Хук для undo/redo
-export const useTemporalStore = () => useEditorStore.temporal;
+// Хук для отримання стану історії
+export const useHistoryState = () => useEditorStore((state) => state.historyState);
+
+// Legacy export для сумісності (тепер використовуйте useCanvasHistory)
+export const useTemporalStore = () => ({
+  undo: () => console.warn('useTemporalStore is deprecated. Use useCanvasHistory instead.'),
+  redo: () => console.warn('useTemporalStore is deprecated. Use useCanvasHistory instead.'),
+  pastStates: [],
+  futureStates: [],
+});
