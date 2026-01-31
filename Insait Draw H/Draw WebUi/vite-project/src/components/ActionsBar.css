@@ -1,0 +1,148 @@
+.actions-bar {
+  display: flex;
+  gap: 16px;
+  padding: 6px 12px;
+  background: transparent;
+  align-items: center;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  flex: 1 1 auto;
+  min-width: 0;
+  justify-content: space-between;
+}
+
+.actions-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.actions-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #505050;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.actions-buttons {
+  display: flex;
+  gap: 3px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.action-btn {
+  padding: 5px 10px;
+  border: 2px solid #D0C0A8;
+  border-radius: 6px;
+  background: #FDF7EF;
+  cursor: pointer;
+  font-size: 11px;
+  color: #303030;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  transition: all 0.15s;
+  white-space: nowrap;
+  flex: 1 1 0;
+  min-width: 0;
+  font-weight: 500;
+}
+
+.action-btn:hover:not(:disabled) {
+  background: #F0E6DC;
+  border-color: #A78BFA;
+  color: #7D2AE8;
+}
+
+.action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.action-btn.success {
+  background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+  border-color: #4CAF50;
+  color: #1B5E20;
+}
+
+.action-btn.success:hover:not(:disabled) {
+  background: linear-gradient(135deg, #C8E6C9 0%, #A5D6A7 100%);
+  border-color: #2E7D32;
+}
+
+.action-btn.danger {
+  background: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%);
+  border-color: #E57373;
+  color: #B71C1C;
+}
+
+.action-btn.danger:hover:not(:disabled) {
+  background: linear-gradient(135deg, #FFCDD2 0%, #EF9A9A 100%);
+  border-color: #D84315;
+}
+
+/* Responsive - Tablet */
+@media (max-width: 1024px) {
+  .actions-bar {
+    padding: 5px 10px;
+    gap: 12px;
+  }
+  
+  .action-btn {
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+}
+
+/* Responsive - Mobile */
+@media (max-width: 768px) {
+  .actions-bar {
+    padding: 4px 8px;
+    gap: 8px;
+    justify-content: flex-start;
+  }
+
+  .actions-group {
+    flex: 0 0 auto;
+  }
+
+  .actions-buttons {
+    flex: 0 0 auto;
+  }
+
+  .action-btn {
+    flex: 0 0 auto;
+  }
+
+  .actions-label {
+    display: none;
+  }
+  
+  .action-btn {
+    padding: 4px 6px;
+    font-size: 10px;
+  }
+  
+  /* Показуємо тільки іконки */
+  .action-btn span:not(:first-child) {
+    display: none;
+  }
+}
+
+/* Very small screens */
+@media (max-width: 480px) {
+  .actions-bar {
+    padding: 3px 6px;
+    gap: 4px;
+  }
+  
+  .actions-group:not(:first-child) {
+    display: none;
+  }
+}
