@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef } from 'react';
 import * as fabric from 'fabric';
-import { useEditorStore, TOOLS, THEME_COLORS } from '../stores/editorStore';
+import { useEditorStore, TOOLS } from '../stores/editorStore';
 import { useLanguageStore } from '../stores/languageStore';
 
-const { Canvas, Rect, Circle, Triangle, Line, IText, PencilBrush } = fabric;
+const { Canvas, Rect, Circle, Triangle, Line, IText, PencilBrush, Path } = fabric;
 
 export function useFabricCanvas(canvasRef, containerRef) {
   const fabricCanvasRef = useRef(null);
@@ -15,6 +15,202 @@ export function useFabricCanvas(canvasRef, containerRef) {
   const currentShape = useRef(null);
   const isInitialized = useRef(false);
   
+  // Bezier/Path tool refs
+  const isDrawingPath = useRef(false);
+  const pathPoints = useRef([]);
+  const currentPath = useRef(null);
+  const controlHandles = useRef([]);
+  
+  // Допоміжна функція для оновлення попереднього перегляду шляху
+  const updatePathPreview = useCallback((canvas, strokeColor, strokeWidth, smooth = false) => {
+    if (!canvas || pathPoints.current.length === 0) return;
+    
+    // Видаляємо попередній шлях
+    if (currentPath.current) {
+      canvas.remove(currentPath.current);
+    }
+    
+    // Видаляємо контрольні точки
+    controlHandles.current.forEach(handle => canvas.remove(handle));
+    controlHandles.current = [];
+    
+    // Генеруємо SVG шлях
+    let pathData = '';
+    const points = pathPoints.current;
+    
+    if (points.length === 1) {
+      // Одна точка - показуємо маленьке коло
+      const p = points[0];
+      const handle = new Circle({
+        left: p.x - 5,
+        top: p.y - 5,
+        radius: 5,
+        fill: '#4a90d9',
+        stroke: '#ffffff',
+        strokeWidth: 2,
+        selectable: false,
+        evented: false,
+        originX: 'center',
+        originY: 'center',
+      });
+      handle.set({ left: p.x, top: p.y });
+      canvas.add(handle);
+      controlHandles.current.push(handle);
+      canvas.renderAll();
+      return;
+    }
+    
+    if (smooth) {
+      // Плавна крива (curvature tool)
+      pathData = `M ${points[0].x} ${points[0].y}`;
+      
+      for (let i = 1; i < points.length; i++) {
+        const prev = points[i - 1];
+        const curr = points[i];
+        
+        if (i === 1) {
+          pathData += ` L ${curr.x} ${curr.y}`;
+        } else {
+          // Використовуємо квадратичну криву з попередньою точкою як контрольною
+          const cpX = prev.x;
+          const cpY = prev.y;
+          pathData += ` Q ${cpX} ${cpY} ${curr.x} ${curr.y}`;
+        }
+      }
+    } else {
+      // Прямі лінії (pen tool - базова версія)
+      pathData = `M ${points[0].x} ${points[0].y}`;
+      for (let i = 1; i < points.length; i++) {
+        pathData += ` L ${points[i].x} ${points[i].y}`;
+      }
+    }
+    
+    try {
+      const path = new Path(pathData, {
+        fill: 'transparent',
+        stroke: strokeColor,
+        strokeWidth: strokeWidth,
+        selectable: false,
+        evented: false,
+      });
+      
+      canvas.add(path);
+      currentPath.current = path;
+      
+      // Додаємо контрольні точки для кожної вершини
+      points.forEach((p, i) => {
+        const isLast = i === points.length - 1;
+        const handle = new Circle({
+          left: p.x,
+          top: p.y,
+          radius: 5,
+          fill: isLast ? '#ff6b00' : '#4a90d9',
+          stroke: '#ffffff',
+          strokeWidth: 2,
+          selectable: false,
+          evented: false,
+          originX: 'center',
+          originY: 'center',
+        });
+        canvas.add(handle);
+        controlHandles.current.push(handle);
+      });
+      
+      canvas.renderAll();
+    } catch (e) {
+      console.warn('Error creating path:', e);
+    }
+  }, []);
+  
+  // Функція для завершення шляху
+  const finalizePath = useCallback((canvas) => {
+    if (!canvas || pathPoints.current.length < 2) {
+      // Недостатньо точок - очищаємо
+      if (currentPath.current) {
+        canvas?.remove(currentPath.current);
+        currentPath.current = null;
+      }
+      controlHandles.current.forEach(handle => canvas?.remove(handle));
+      controlHandles.current = [];
+      pathPoints.current = [];
+      isDrawingPath.current = false;
+      canvas?.renderAll();
+      return;
+    }
+    
+    const { strokeColor, strokeWidth, fillColor, addLayer } = useEditorStore.getState();
+    
+    // Видаляємо попередній preview
+    if (currentPath.current) {
+      canvas.remove(currentPath.current);
+    }
+    controlHandles.current.forEach(handle => canvas.remove(handle));
+    controlHandles.current = [];
+    
+    // Створюємо фінальний шлях
+    let pathData = `M ${pathPoints.current[0].x} ${pathPoints.current[0].y}`;
+    const points = pathPoints.current;
+    
+    const isSmooth = points.some(p => p.type === 'smooth');
+    
+    if (isSmooth && points.length > 2) {
+      for (let i = 1; i < points.length; i++) {
+        const prev = points[i - 1];
+        const curr = points[i];
+        
+        if (i === 1) {
+          pathData += ` L ${curr.x} ${curr.y}`;
+        } else {
+          const cpX = prev.x;
+          const cpY = prev.y;
+          pathData += ` Q ${cpX} ${cpY} ${curr.x} ${curr.y}`;
+        }
+      }
+    } else {
+      for (let i = 1; i < points.length; i++) {
+        pathData += ` L ${points[i].x} ${points[i].y}`;
+      }
+    }
+    
+    try {
+      const finalPath = new Path(pathData, {
+        fill: fillColor === 'transparent' ? 'transparent' : fillColor,
+        stroke: strokeColor,
+        strokeWidth: strokeWidth,
+        selectable: true,
+        evented: true,
+        hasControls: true,
+        hasBorders: true,
+        lockUniScaling: false,
+      });
+      
+      // Генеруємо унікальний ID
+      finalPath.id = `path_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      
+      // Встановлюємо властивості для розпізнавання в LayersPanel
+      finalPath.type = 'path';
+      finalPath.name = isSmooth ? 'Curve' : 'Path';
+      
+      // Зберігаємо оригінальні точки для можливості редагування
+      finalPath.customData = {
+        type: 'bezierPath',
+        originalPoints: [...points],
+      };
+      
+      canvas.add(finalPath);
+      addLayer(finalPath);
+      canvas.setActiveObject(finalPath);
+      canvas.renderAll();
+    } catch (e) {
+      console.warn('Error finalizing path:', e);
+    }
+    
+    // Очищаємо стан
+    pathPoints.current = [];
+    currentPath.current = null;
+    isDrawingPath.current = false;
+  }, []);
+
   // Ініціалізація канвасу
   const initCanvas = useCallback(() => {
     if (!canvasRef.current || isInitialized.current) return;
@@ -158,6 +354,42 @@ export function useFabricCanvas(canvasRef, containerRef) {
           y: snapValue(pointer.y),
         };
       }
+      
+      // PEN tool - Bezier curves
+      if (activeTool === TOOLS.PEN) {
+        const { strokeColor, strokeWidth } = useEditorStore.getState();
+        const pointer = getPointerPosition(opt, canvas);
+        const x = snapValue(pointer.x);
+        const y = snapValue(pointer.y);
+        
+        // Додаємо нову точку
+        pathPoints.current.push({ x, y, type: 'point' });
+        
+        // Створюємо або оновлюємо шлях
+        updatePathPreview(canvas, strokeColor, strokeWidth);
+        
+        // Відмічаємо що малюємо шлях
+        isDrawingPath.current = true;
+        
+        return;
+      }
+      
+      // CURVATURE tool - Auto-smooth curves
+      if (activeTool === TOOLS.CURVATURE) {
+        const { strokeColor, strokeWidth } = useEditorStore.getState();
+        const pointer = getPointerPosition(opt, canvas);
+        const x = snapValue(pointer.x);
+        const y = snapValue(pointer.y);
+        
+        // Додаємо точку з плавним переходом
+        pathPoints.current.push({ x, y, type: 'smooth' });
+        
+        // Оновлюємо попередній перегляд
+        updatePathPreview(canvas, strokeColor, strokeWidth, true);
+        
+        isDrawingPath.current = true;
+        return;
+      }
     });
     
     // Mouse move
@@ -288,10 +520,16 @@ export function useFabricCanvas(canvasRef, containerRef) {
       }
     });
     
-    // Double click for text
+    // Double click for text or to finish path
     canvas.on('mouse:dblclick', (opt) => {
       const { activeTool, fontFamily, fontSize, fillColor, snapToGrid, gridSize, addLayer } = useEditorStore.getState();
       const { t } = useLanguageStore.getState();
+      
+      // Завершуємо шлях при подвійному кліку для PEN/CURVATURE
+      if ((activeTool === TOOLS.PEN || activeTool === TOOLS.CURVATURE) && isDrawingPath.current) {
+        finalizePath(canvas);
+        return;
+      }
       
       if (activeTool !== TOOLS.TEXT) return;
       
@@ -364,6 +602,18 @@ export function useFabricCanvas(canvasRef, containerRef) {
         } else if (state.activeTool === TOOLS.TEXT) {
           canvas.defaultCursor = 'text';
           canvas.hoverCursor = 'text';
+        } else if ([TOOLS.PEN, TOOLS.CURVATURE].includes(state.activeTool)) {
+          canvas.defaultCursor = 'crosshair';
+          canvas.hoverCursor = 'crosshair';
+          canvas.selection = false;
+        } else if (state.activeTool === TOOLS.ANCHOR_POINT) {
+          canvas.defaultCursor = 'crosshair';
+          canvas.hoverCursor = 'pointer';
+          canvas.selection = false;
+        } else if (state.activeTool === TOOLS.DIRECT_SELECT) {
+          canvas.defaultCursor = 'default';
+          canvas.hoverCursor = 'pointer';
+          canvas.selection = true;
         } else {
           canvas.defaultCursor = 'default';
           canvas.hoverCursor = 'move';
@@ -391,6 +641,40 @@ export function useFabricCanvas(canvasRef, containerRef) {
       clearInterval(checkAndUpdate);
     };
   }, []);
+  
+  // Обробка подій клавіатури для шляхів (Escape/Enter)
+  useEffect(() => {
+    const handleCancelPath = () => {
+      const canvas = fabricCanvasRef.current;
+      if (!canvas) return;
+      
+      // Очищаємо шлях без збереження
+      if (currentPath.current) {
+        canvas.remove(currentPath.current);
+        currentPath.current = null;
+      }
+      controlHandles.current.forEach(handle => canvas.remove(handle));
+      controlHandles.current = [];
+      pathPoints.current = [];
+      isDrawingPath.current = false;
+      canvas.renderAll();
+    };
+    
+    const handleFinalizePath = () => {
+      const canvas = fabricCanvasRef.current;
+      if (canvas && isDrawingPath.current) {
+        finalizePath(canvas);
+      }
+    };
+    
+    window.addEventListener('cancelPath', handleCancelPath);
+    window.addEventListener('finalizePath', handleFinalizePath);
+    
+    return () => {
+      window.removeEventListener('cancelPath', handleCancelPath);
+      window.removeEventListener('finalizePath', handleFinalizePath);
+    };
+  }, [finalizePath]);
   
   // Обробка resize
   useEffect(() => {

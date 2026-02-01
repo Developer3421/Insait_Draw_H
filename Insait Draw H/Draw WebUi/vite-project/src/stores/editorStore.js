@@ -146,10 +146,30 @@ const createEditorStore = (set, get) => ({
   
   // Додати шар
   addLayer: (object) => {
+    // Визначаємо ім'я об'єкта на основі типу
+    let objectName = object.name || object.type || 'Object';
+    
+    // Покращене визначення типу
+    if (object.type === 'path') {
+      objectName = object.name || 'Path';
+    } else if (object.type === 'rect') {
+      objectName = 'Rectangle';
+    } else if (object.type === 'circle') {
+      objectName = 'Circle';
+    } else if (object.type === 'triangle') {
+      objectName = 'Triangle';
+    } else if (object.type === 'line') {
+      objectName = 'Line';
+    } else if (object.type === 'i-text' || object.type === 'text') {
+      objectName = 'Text';
+    } else if (object.type === 'image') {
+      objectName = 'Image';
+    }
+    
     const newLayer = {
       id: uuidv4(),
       objectId: object.id || uuidv4(),
-      name: object.type || 'Object',
+      name: objectName,
       visible: true,
       locked: false,
       object: object,

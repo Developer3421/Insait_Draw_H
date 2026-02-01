@@ -39,7 +39,8 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding: 8px;
-  min-height: 0;
+  min-height: 52px; /* Мінімум для одного елемента */
+  max-height: 52px; /* Обмежуємо до одного елемента списку */
 }
 
 .layers-empty {

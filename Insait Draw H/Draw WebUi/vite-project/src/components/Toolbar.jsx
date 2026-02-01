@@ -82,7 +82,7 @@ export function Toolbar() {
   const handleImportImage = () => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = 'image/png,image/jpeg,image/jpg';
+    input.accept = 'image/png,image/jpeg,image/jpg,image/gif,image/webp,image/bmp,image/svg+xml';
     input.onchange = async (e) => {
       const file = e.target.files[0];
       if (!file || !canvas) return;

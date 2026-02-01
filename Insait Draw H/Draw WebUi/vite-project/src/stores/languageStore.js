@@ -193,7 +193,7 @@ export const translations = {
     
     // Import
     importImage: 'Import',
-    importImageTitle: 'Import PNG/JPEG image',
+    importImageTitle: 'Import image (PNG, JPEG, GIF, WebP, BMP, SVG)',
   },
   uk: {
     // Інструменти
@@ -334,7 +334,7 @@ export const translations = {
     
     // Імпорт
     importImage: 'Імпорт',
-    importImageTitle: 'Імпорт PNG/JPEG зображення',
+    importImageTitle: 'Імпорт зображення (PNG, JPEG, GIF, WebP, BMP, SVG)',
   },
   de: {
     // Werkzeuge
@@ -468,7 +468,7 @@ export const translations = {
     
     // Import
     importImage: 'Importieren',
-    importImageTitle: 'PNG/JPEG-Bild importieren',
+    importImageTitle: 'Bild importieren (PNG, JPEG, GIF, WebP, BMP, SVG)',
   },
 };
 

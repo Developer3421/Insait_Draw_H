@@ -218,6 +218,26 @@ export function CanvasArea() {
           case 'r': setActiveTool(TOOLS.RECTANGLE); break;
           case 'c': setActiveTool(TOOLS.CIRCLE); break;
           case 't': setActiveTool(TOOLS.TEXT); break;
+          case 'p': setActiveTool(TOOLS.PEN); break;
+          case 'a': setActiveTool(TOOLS.DIRECT_SELECT); break;
+        }
+      }
+      
+      // Escape - скасувати поточне малювання шляху
+      if (e.key === 'Escape') {
+        const { activeTool } = useEditorStore.getState();
+        if (activeTool === TOOLS.PEN || activeTool === TOOLS.CURVATURE) {
+          // Генеруємо подію для скасування шляху
+          window.dispatchEvent(new CustomEvent('cancelPath'));
+        }
+      }
+      
+      // Enter - завершити поточний шлях
+      if (e.key === 'Enter') {
+        const { activeTool } = useEditorStore.getState();
+        if (activeTool === TOOLS.PEN || activeTool === TOOLS.CURVATURE) {
+          // Генеруємо подію для завершення шляху
+          window.dispatchEvent(new CustomEvent('finalizePath'));
         }
       }
       
