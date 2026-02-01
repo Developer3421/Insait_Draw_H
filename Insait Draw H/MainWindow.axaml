@@ -84,7 +84,7 @@
         <Grid Grid.Row="0" Name="TitleBar" Background="{StaticResource GrayGradient}" PointerPressed="TitleBar_OnPointerPressed">
             <Grid ColumnDefinitions="Auto,*,Auto" Margin="8,0">
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
-                    <Border Width="24" Height="24" Background="{StaticResource AccentPurpleBrush}" CornerRadius="4"/>
+                    <Image Source="avares://Insait%20Draw%20H/Icons/AppIcon2.png" Width="24" Height="24"/>
                     <TextBlock Text="Insait Draw H" FontSize="14" FontWeight="SemiBold"
                                Foreground="{StaticResource AppTextBrush}" VerticalAlignment="Center"/>
                 </StackPanel>

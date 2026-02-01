@@ -50,6 +50,11 @@ export const TOOLS = {
   POLYGON: 'polygon',
   TEXT: 'text',
   PATH: 'path',
+  // Bezier/Path tools - як в Adobe Illustrator / CorelDRAW
+  PEN: 'pen',                   // Перо - малювання кривих Безьє точка за точкою
+  CURVATURE: 'curvature',       // Інструмент кривизни - автоматичні плавні криві
+  ANCHOR_POINT: 'anchor_point', // Редагування опорних точок
+  DIRECT_SELECT: 'direct_select', // Пряме виділення - вибір окремих точок/handles
 };
 
 // Типи boolean операцій

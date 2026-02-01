@@ -1,5 +1,6 @@
 import { useEditorStore, TOOLS } from '../stores/editorStore';
 import { useLanguageStore } from '../stores/languageStore';
+import { FabricImage } from 'fabric';
 import './Toolbar.css';
 
 const PRESET_COLORS = [
@@ -78,6 +79,49 @@ export function Toolbar() {
     }
   };
 
+  const handleImportImage = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/png,image/jpeg,image/jpg';
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file || !canvas) return;
+      
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        try {
+          const imgElement = new Image();
+          imgElement.onload = async () => {
+            const fabricImage = new FabricImage(imgElement, {
+              left: 100,
+              top: 100,
+            });
+            
+            // Scale down if image is too large (max 800px on any side)
+            const maxSize = 800;
+            if (fabricImage.width > maxSize || fabricImage.height > maxSize) {
+              const scale = Math.min(maxSize / fabricImage.width, maxSize / fabricImage.height);
+              fabricImage.scale(scale);
+            }
+            
+            canvas.add(fabricImage);
+            canvas.setActiveObject(fabricImage);
+            canvas.requestRenderAll();
+            
+            // Add to layers
+            const { addLayer } = useEditorStore.getState();
+            addLayer(fabricImage);
+          };
+          imgElement.src = event.target.result;
+        } catch (err) {
+          console.error('Error importing image:', err);
+        }
+      };
+      reader.readAsDataURL(file);
+    };
+    input.click();
+  };
+
   return (
     <div className="toolbar">
       {/* Tools */}
@@ -118,7 +162,7 @@ export function Toolbar() {
       {/* Shapes */}
       <div className="tool-group">
         <span className="group-label">{t('shapes')}</span>
-        <div className="tools">
+        <div className="tools-grid shapes-grid">
           <button
             className={`tool-btn ${activeTool === TOOLS.LINE ? 'active' : ''}`}
             onClick={() => setActiveTool(TOOLS.LINE)}
@@ -153,6 +197,48 @@ export function Toolbar() {
             title={t('textDoubleClick')}
           >
             📝
+          </button>
+          <button
+            className="tool-btn import-btn"
+            onClick={handleImportImage}
+            title={t('importImageTitle')}
+          >
+            📥
+          </button>
+        </div>
+      </div>
+
+      {/* Bezier / Path Tools */}
+      <div className="tool-group">
+        <span className="group-label">{t('pathTools') || 'Path Tools'}</span>
+        <div className="tools-grid">
+          <button
+            className={`tool-btn ${activeTool === TOOLS.PEN ? 'active' : ''}`}
+            onClick={() => setActiveTool(TOOLS.PEN)}
+            title={`${t('penTool') || 'Pen Tool'} (P) - Draw Bezier curves`}
+          >
+            ✒️
+          </button>
+          <button
+            className={`tool-btn ${activeTool === TOOLS.CURVATURE ? 'active' : ''}`}
+            onClick={() => setActiveTool(TOOLS.CURVATURE)}
+            title={`${t('curvatureTool') || 'Curvature Tool'} - Auto-smooth curves`}
+          >
+            〰️
+          </button>
+          <button
+            className={`tool-btn ${activeTool === TOOLS.ANCHOR_POINT ? 'active' : ''}`}
+            onClick={() => setActiveTool(TOOLS.ANCHOR_POINT)}
+            title={`${t('anchorPointTool') || 'Anchor Point Tool'} - Add/Remove/Convert points`}
+          >
+            ⊕
+          </button>
+          <button
+            className={`tool-btn ${activeTool === TOOLS.DIRECT_SELECT ? 'active' : ''}`}
+            onClick={() => setActiveTool(TOOLS.DIRECT_SELECT)}
+            title={`${t('directSelectTool') || 'Direct Selection'} (A) - Edit individual points`}
+          >
+            ↗️
           </button>
         </div>
       </div>

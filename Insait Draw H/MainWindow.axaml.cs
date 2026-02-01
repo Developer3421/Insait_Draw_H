@@ -202,14 +202,105 @@ public partial class MainWindow : Window
             var requestLine = reader.ReadLine();
             if (string.IsNullOrEmpty(requestLine)) return;
 
-            // Пропускаємо заголовки
-            while (!string.IsNullOrEmpty(reader.ReadLine())) { }
+            // Зчитуємо заголовки та тіло запиту
+            var headers = new System.Collections.Generic.Dictionary<string, string>();
+            string? headerLine;
+            int contentLength = 0;
+            while (!string.IsNullOrEmpty(headerLine = reader.ReadLine()))
+            {
+                var colonIndex = headerLine.IndexOf(':');
+                if (colonIndex > 0)
+                {
+                    var key = headerLine.Substring(0, colonIndex).Trim().ToLowerInvariant();
+                    var value = headerLine.Substring(colonIndex + 1).Trim();
+                    headers[key] = value;
+                    if (key == "content-length")
+                    {
+                        int.TryParse(value, out contentLength);
+                    }
+                }
+            }
 
             // Парсимо шлях
             var parts = requestLine.Split(' ');
             if (parts.Length < 2) return;
             
+            var method = parts[0];
             var urlPath = parts[1];
+            
+            // API endpoints для налаштувань мови
+            if (urlPath == "/api/language" && method == "GET")
+            {
+                // Повертаємо поточну мову
+                var langJson = $"{{\"language\":\"{LanguageManager.CurrentLanguage}\"}}";
+                var langBody = Encoding.UTF8.GetBytes(langJson);
+                var langHeader = "HTTP/1.1 200 OK\r\n" +
+                                 "Content-Type: application/json\r\n" +
+                                 $"Content-Length: {langBody.Length}\r\n" +
+                                 "Connection: close\r\n" +
+                                 "Access-Control-Allow-Origin: *\r\n" +
+                                 "\r\n";
+                var langHeaderBytes = Encoding.UTF8.GetBytes(langHeader);
+                stream.Write(langHeaderBytes, 0, langHeaderBytes.Length);
+                stream.Write(langBody, 0, langBody.Length);
+                return;
+            }
+            
+            if (urlPath == "/api/language" && method == "POST")
+            {
+                // Зчитуємо тіло запиту
+                if (contentLength > 0)
+                {
+                    var bodyBuffer = new char[contentLength];
+                    reader.ReadBlock(bodyBuffer, 0, contentLength);
+                    var body = new string(bodyBuffer);
+                    
+                    try
+                    {
+                        var langData = System.Text.Json.JsonSerializer.Deserialize<LanguageRequest>(body);
+                        if (langData != null && !string.IsNullOrEmpty(langData.Language))
+                        {
+                            // Валідуємо мову
+                            var validLanguages = new[] { "en", "uk", "de" };
+                            if (Array.IndexOf(validLanguages, langData.Language) >= 0)
+                            {
+                                LanguageManager.CurrentLanguage = langData.Language;
+                            }
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore parsing errors
+                    }
+                }
+                
+                var okBody = Encoding.UTF8.GetBytes("{\"success\":true}");
+                var okHeader = "HTTP/1.1 200 OK\r\n" +
+                               "Content-Type: application/json\r\n" +
+                               $"Content-Length: {okBody.Length}\r\n" +
+                               "Connection: close\r\n" +
+                               "Access-Control-Allow-Origin: *\r\n" +
+                               "\r\n";
+                var okHeaderBytes = Encoding.UTF8.GetBytes(okHeader);
+                stream.Write(okHeaderBytes, 0, okHeaderBytes.Length);
+                stream.Write(okBody, 0, okBody.Length);
+                return;
+            }
+            
+            // CORS preflight для API
+            if (method == "OPTIONS" && urlPath.StartsWith("/api/"))
+            {
+                var corsHeader = "HTTP/1.1 204 No Content\r\n" +
+                                 "Access-Control-Allow-Origin: *\r\n" +
+                                 "Access-Control-Allow-Methods: GET, POST, OPTIONS\r\n" +
+                                 "Access-Control-Allow-Headers: Content-Type\r\n" +
+                                 "Connection: close\r\n" +
+                                 "\r\n";
+                var corsHeaderBytes = Encoding.UTF8.GetBytes(corsHeader);
+                stream.Write(corsHeaderBytes, 0, corsHeaderBytes.Length);
+                return;
+            }
+            
             if (urlPath == "/") urlPath = "/index.html";
             
             // Декодуємо URL
@@ -313,5 +404,10 @@ public partial class MainWindow : Window
         }
 
         return null;
+    }
+    
+    private class LanguageRequest
+    {
+        public string Language { get; set; } = "en";
     }
 }

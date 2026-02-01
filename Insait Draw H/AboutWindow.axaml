@@ -23,17 +23,11 @@
     <Border Padding="32" MinWidth="420" MinHeight="350">
         <StackPanel Spacing="20" HorizontalAlignment="Center">
             <!-- Logo -->
-            <Border Width="80" Height="80" CornerRadius="16" 
-                    Background="{StaticResource OrangePurpleGradient}"
-                    HorizontalAlignment="Center"
-                    Name="LogoPanel" PointerPressed="LogoPanel_OnPointerPressed"
-                    Cursor="Hand">
-                <Viewbox Width="48" Height="48">
-                    <Canvas Width="24" Height="24">
-                        <Path Fill="White" Data="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
-                    </Canvas>
-                </Viewbox>
-            </Border>
+            <Image Source="avares://Insait%20Draw%20H/Icons/AppIcon2.png" 
+                   Width="80" Height="80"
+                   HorizontalAlignment="Center"
+                   Name="LogoPanel" PointerPressed="LogoPanel_OnPointerPressed"
+                   Cursor="Hand"/>
 
             <!-- App Name -->
             <StackPanel Spacing="4" HorizontalAlignment="Center">

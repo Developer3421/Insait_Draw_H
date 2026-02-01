@@ -3,6 +3,7 @@ import { useLanguageStore } from '../stores/languageStore';
 import { useCallback, useEffect } from 'react';
 import { useCanvasHistory, getHistoryManager } from '../hooks/useCanvasHistory';
 import { getPageBounds } from '../hooks/useArtboard';
+import { saveAsINSD, loadFromINSD, downloadBlob } from '../utils/insdFile';
 import './ActionsBar.css';
 
 // Clipboard storage outside component to persist between renders
@@ -19,7 +20,7 @@ export function ActionsBar() {
   } = useEditorStore();
   
   // Use new canvas history hook
-  const { undo, redo, canUndo, canRedo, saveState } = useCanvasHistory();
+  const { undo, redo, canUndo, canRedo } = useCanvasHistory();
   // Get history state from store for reactivity
   const historyState = useHistoryState();
 
@@ -81,41 +82,95 @@ export function ActionsBar() {
     link.click();
   };
 
-  const handleSaveJSON = () => {
+  const handleSaveJSON = async () => {
     if (!canvas) return;
-    const json = JSON.stringify(canvas.toJSON(['id']), null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.download = `insait-draw-${Date.now()}.json`;
-    link.href = url;
-    link.click();
-    URL.revokeObjectURL(url);
+    
+    try {
+      const { pageSettings, layers, zoom, panOffset, showGrid, snapToGrid, gridSize } = useEditorStore.getState();
+      
+      // Зберігаємо у форматі .insd (OPC)
+      const blob = await saveAsINSD(canvas, pageSettings, layers, {
+        zoom,
+        panOffset,
+        showGrid,
+        snapToGrid,
+        gridSize,
+        title: `insait-draw-${Date.now()}`,
+      });
+      
+      downloadBlob(blob, `insait-draw-${Date.now()}.insd`);
+    } catch (err) {
+      console.error('Error saving document:', err);
+      alert(t('saveError') + (err.message || err));
+    }
   };
 
   const handleLoadJSON = () => {
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = '.json';
-    input.onchange = (e) => {
+    input.accept = '.insd,.json';
+    input.onchange = async (e) => {
       const file = e.target.files[0];
       if (!file || !canvas) return;
       
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          const json = JSON.parse(event.target.result);
-          canvas.loadFromJSON(json, () => {
-            canvas.renderAll();
-            // Sync layers
-            const { syncLayersFromCanvas } = useEditorStore.getState();
-            syncLayersFromCanvas();
+      try {
+        // Перевіряємо розширення файлу
+        const isInsd = file.name.toLowerCase().endsWith('.insd');
+        
+        if (isInsd) {
+          // Завантажуємо .insd файл
+          const { canvasJson, settings } = await loadFromINSD(file);
+          
+          await new Promise((resolve) => {
+            canvas.loadFromJSON(canvasJson, () => {
+              canvas.renderAll();
+              resolve();
+            }, (obj, error) => {
+              if (error) console.warn('Object load warning:', error);
+            });
           });
-        } catch (err) {
-          alert(t('loadError') + err.message);
+          
+          // Застосовуємо налаштування
+          if (settings) {
+            const { setPageSettings, setZoom, setPanOffset, setShowGrid, setSnapToGrid, setGridSize } = useEditorStore.getState();
+            
+            if (settings.page) {
+              setPageSettings(settings.page);
+            }
+            if (settings.editor) {
+              if (settings.editor.zoom) setZoom(settings.editor.zoom);
+              if (settings.editor.panOffset) setPanOffset(settings.editor.panOffset);
+              if (typeof settings.editor.showGrid === 'boolean') setShowGrid(settings.editor.showGrid);
+              if (typeof settings.editor.snapToGrid === 'boolean') setSnapToGrid(settings.editor.snapToGrid);
+              if (settings.editor.gridSize) setGridSize(settings.editor.gridSize);
+            }
+          }
+          
+          // Синхронізуємо шари
+          const { syncLayersFromCanvas } = useEditorStore.getState();
+          syncLayersFromCanvas();
+          
+        } else {
+          // Завантажуємо старий JSON формат для сумісності
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            try {
+              const json = JSON.parse(event.target.result);
+              canvas.loadFromJSON(json, () => {
+                canvas.renderAll();
+                const { syncLayersFromCanvas } = useEditorStore.getState();
+                syncLayersFromCanvas();
+              });
+            } catch (err) {
+              alert(t('loadError') + err.message);
+            }
+          };
+          reader.readAsText(file);
         }
-      };
-      reader.readAsText(file);
+      } catch (err) {
+        console.error('Error loading document:', err);
+        alert(t('loadError') + (err.message || err));
+      }
     };
     input.click();
   };
@@ -147,8 +202,7 @@ export function ActionsBar() {
     
     try {
       // Fabric.js v7 uses async clone
-      const cloned = await activeObject.clone();
-      clipboardStore.data = cloned;
+      clipboardStore.data = await activeObject.clone();
       clipboardStore.pasteOffset = 0; // Reset offset on new copy
     } catch (err) {
       console.error('Error copying object:', err);

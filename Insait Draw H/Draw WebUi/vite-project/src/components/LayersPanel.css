@@ -1,5 +1,6 @@
 .layers-panel {
   width: 280px;
+  max-height: 400px;
   background: linear-gradient(180deg, #FAF4EC 0%, #EFE0CC 100%);
   border-left: 1px solid #D0C0A8;
   display: flex;
@@ -14,6 +15,7 @@
   padding: 12px 16px;
   background: linear-gradient(135deg, #D5D5D5 0%, #C5C5C5 30%, #B8B8B8 70%, #B0B0B0 100%);
   border-bottom: 1px solid #D0C0A8;
+  flex-shrink: 0;
 }
 
 .layers-header h3 {
@@ -35,7 +37,9 @@
 .layers-list {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 8px;
+  min-height: 0;
 }
 
 .layers-empty {
@@ -144,6 +148,7 @@
   padding: 12px;
   background: linear-gradient(135deg, #D5D5D5 0%, #B8B8B8 100%);
   border-top: 1px solid #D0C0A8;
+  flex-shrink: 0;
 }
 
 .layer-action-btn {

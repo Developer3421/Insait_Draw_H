@@ -5,6 +5,7 @@
         <Nullable>enable</Nullable>
         <ApplicationManifest>app.manifest</ApplicationManifest>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+        <ApplicationIcon>Icons\AppIcon1.ico</ApplicationIcon>
     </PropertyGroup>
 
     <ItemGroup>
@@ -22,10 +23,10 @@
 
     <ItemGroup>
       <Folder Include="Draw WebUi\" />
-      <Folder Include="Draw WebUi\vite-project\Icons\" />
     </ItemGroup>
 
     <ItemGroup>
+      <AvaloniaResource Include="Draw WebUi\vite-project\Icons\AppIcon2.png" />
       <AvaloniaResource Include="Icons\**\*" />
     </ItemGroup>
 </Project>

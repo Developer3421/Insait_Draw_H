@@ -1,5 +1,56 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
+
+// Supported languages
+const SUPPORTED_LANGUAGES = ['en', 'uk', 'de'];
+const DEFAULT_LANGUAGE = 'en';
+
+// Safe localStorage wrapper that handles errors gracefully
+const safeStorage = {
+  getItem: (name) => {
+    try {
+      const value = localStorage.getItem(name);
+      if (value === null) return null;
+      
+      // Try to parse and validate the stored value
+      const parsed = JSON.parse(value);
+      
+      // Validate that it has a valid language
+      if (parsed && parsed.state && parsed.state.language) {
+        if (SUPPORTED_LANGUAGES.includes(parsed.state.language)) {
+          return value;
+        }
+      }
+      
+      // If validation fails, remove corrupted data and return null
+      localStorage.removeItem(name);
+      return null;
+    } catch (error) {
+      // If parsing fails, remove corrupted data
+      try {
+        localStorage.removeItem(name);
+      } catch {
+        // Ignore removal errors
+      }
+      return null;
+    }
+  },
+  setItem: (name, value) => {
+    try {
+      localStorage.setItem(name, value);
+    } catch (error) {
+      // Handle quota exceeded or other storage errors
+      console.warn('Failed to save language preference:', error);
+    }
+  },
+  removeItem: (name) => {
+    try {
+      localStorage.removeItem(name);
+    } catch (error) {
+      // Ignore removal errors
+    }
+  },
+};
 
 // Translations
 export const translations = {
@@ -19,6 +70,13 @@ export const translations = {
     triangle: 'Triangle',
     text: 'Text',
     textDoubleClick: 'Text (Double-click to add)',
+    
+    // Path/Bezier tools
+    pathTools: 'Path Tools',
+    penTool: 'Pen Tool',
+    curvatureTool: 'Curvature',
+    anchorPointTool: 'Anchor Point',
+    directSelectTool: 'Direct Select',
     
     // Colors
     colors: 'Colors',
@@ -63,6 +121,7 @@ export const translations = {
     clear: 'Clear',
     clearConfirm: 'Are you sure you want to clear the canvas?',
     loadError: 'Error loading file: ',
+    saveError: 'Error saving file: ',
     
     // Layers
     layers: 'Layers',
@@ -131,6 +190,10 @@ export const translations = {
     fitPageToView: 'Fit to View',
     zoom100: 'Zoom 100%',
     alignToPage: 'Align to Page',
+    
+    // Import
+    importImage: 'Import',
+    importImageTitle: 'Import PNG/JPEG image',
   },
   uk: {
     // Інструменти
@@ -148,6 +211,13 @@ export const translations = {
     triangle: 'Трикутник',
     text: 'Текст',
     textDoubleClick: 'Текст (Подвійний клік для додавання)',
+    
+    // Інструменти контурів/Безьє
+    pathTools: 'Контури',
+    penTool: 'Перо',
+    curvatureTool: 'Кривизна',
+    anchorPointTool: 'Опорні точки',
+    directSelectTool: 'Пряме виділення',
     
     // Кольори
     colors: 'Кольори',
@@ -192,6 +262,7 @@ export const translations = {
     clear: 'Очистити',
     clearConfirm: 'Ви впевнені, що хочете очистити полотно?',
     loadError: 'Помилка завантаження файлу: ',
+    saveError: 'Помилка збереження файлу: ',
     
     // Шари
     layers: 'Шари',
@@ -260,6 +331,10 @@ export const translations = {
     fitPageToView: 'Вмістити в вікно',
     zoom100: 'Масштаб 100%',
     alignToPage: 'Вирівняти до сторінки',
+    
+    // Імпорт
+    importImage: 'Імпорт',
+    importImageTitle: 'Імпорт PNG/JPEG зображення',
   },
   de: {
     // Werkzeuge
@@ -321,6 +396,7 @@ export const translations = {
     clear: 'Löschen',
     clearConfirm: 'Sind Sie sicher, dass Sie die Leinwand löschen möchten?',
     loadError: 'Fehler beim Laden der Datei: ',
+    saveError: 'Fehler beim Speichern der Datei: ',
     
     // Ebenen
     layers: 'Ebenen',
@@ -389,21 +465,80 @@ export const translations = {
     fitPageToView: 'An Ansicht anpassen',
     zoom100: 'Zoom 100%',
     alignToPage: 'An Seite ausrichten',
+    
+    // Import
+    importImage: 'Importieren',
+    importImageTitle: 'PNG/JPEG-Bild importieren',
   },
+};
+
+// Function to sync language with Avalonia backend (for Microsoft Store compatibility)
+const syncLanguageToBackend = async (lang) => {
+  try {
+    await fetch('/api/language', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ language: lang }),
+    });
+  } catch (error) {
+    // Silently fail - backend may not be available (e.g., in browser dev mode)
+  }
+};
+
+// Function to fetch initial language from Avalonia backend
+const fetchLanguageFromBackend = async () => {
+  try {
+    const response = await fetch('/api/language');
+    if (response.ok) {
+      const data = await response.json();
+      if (data && SUPPORTED_LANGUAGES.includes(data.language)) {
+        return data.language;
+      }
+    }
+  } catch (error) {
+    // Silently fail - backend may not be available
+  }
+  return null;
 };
 
 export const useLanguageStore = create(
   persist(
     (set, get) => ({
-      language: 'en',
-      setLanguage: (lang) => set({ language: lang }),
+      language: DEFAULT_LANGUAGE,
+      setLanguage: (lang) => {
+        // Validate that the language is supported
+        const validLang = SUPPORTED_LANGUAGES.includes(lang) ? lang : DEFAULT_LANGUAGE;
+        set({ language: validLang });
+        // Also sync to backend for Microsoft Store persistence
+        syncLanguageToBackend(validLang);
+      },
       t: (key) => {
         const lang = get().language;
+        // Fallback chain: current language -> English -> key itself
         return translations[lang]?.[key] || translations.en[key] || key;
+      },
+      // Initialize language from backend (call this on app startup)
+      initializeFromBackend: async () => {
+        const backendLang = await fetchLanguageFromBackend();
+        if (backendLang) {
+          set({ language: backendLang });
+        }
       },
     }),
     {
       name: 'insait-draw-language',
+      storage: createJSONStorage(() => safeStorage),
+      // Handle hydration errors by falling back to default language
+      onRehydrateStorage: () => (state, error) => {
+        if (error) {
+          console.warn('Failed to rehydrate language store, using default language');
+          return;
+        }
+        // Validate rehydrated language
+        if (state && !SUPPORTED_LANGUAGES.includes(state.language)) {
+          state.language = DEFAULT_LANGUAGE;
+        }
+      },
     }
   )
 );
