@@ -2,67 +2,73 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 8px 12px;
-  background: #2a2a3e;
-  border-radius: 8px;
+  padding: 10px 12px;
+  background: linear-gradient(135deg, #FAF4EC 0%, #EFE0CC 100%);
+  border-bottom: 1px solid #D0C0A8;
+  border-left: 1px solid #D0C0A8;
+  align-items: flex-start;
+  flex-shrink: 0;
 }
 
 .settings-section {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 4px;
 }
 
 .settings-label {
-  font-size: 12px;
+  font-size: 10px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.87);
-  margin-bottom: 4px;
+  color: #505050;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
 }
 
 .preset-buttons {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 3px;
+  max-width: 200px;
 }
 
 .preset-group {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
+  gap: 3px;
 }
 
 .preset-btn {
-  padding: 4px 8px;
-  font-size: 11px;
-  background: #1a1a2e;
-  border: 1px solid #0f3460;
-  border-radius: 4px;
-  color: rgba(255, 255, 255, 0.87);
+  padding: 4px 6px;
+  font-size: 10px;
+  background: #FAF4EC;
+  border: 2px solid #D0C0A8;
+  border-radius: 6px;
+  color: #303030;
   cursor: pointer;
   transition: all 0.15s ease;
   white-space: nowrap;
 }
 
 .preset-btn:hover {
-  background: #0f3460;
-  border-color: #4a90d9;
+  background: #EBE0D5;
+  border-color: #9575CD;
 }
 
 .preset-btn.active {
-  background: #4a90d9;
-  border-color: #6ab0ff;
-  color: white;
+  background: linear-gradient(135deg, #D1C4E9 0%, #B39DDB 100%);
+  border-color: #9575CD;
+  color: #303030;
 }
 
 .custom-toggle {
-  width: 100%;
-  margin-top: 4px;
+  width: auto;
+  margin-top: 0;
 }
 
 .custom-size {
-  background: #1a1a2e;
-  padding: 8px;
+  background: #EBE0D5;
+  padding: 6px;
   border-radius: 6px;
   margin-top: 4px;
 }
@@ -70,7 +76,7 @@
 .size-inputs {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 4px;
 }
 
 .size-inputs label {
@@ -81,79 +87,98 @@
 }
 
 .size-inputs label span {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.6);
+  font-size: 9px;
+  color: #505050;
 }
 
 .size-inputs input {
-  width: 100%;
-  padding: 4px 6px;
-  font-size: 12px;
-  background: #16213e;
-  border: 1px solid #0f3460;
+  width: 60px;
+  padding: 3px 4px;
+  font-size: 11px;
+  background: #FAF4EC;
+  border: 1px solid #D0C0A8;
   border-radius: 4px;
-  color: white;
+  color: #303030;
   text-align: center;
 }
 
 .size-inputs input:focus {
   outline: none;
-  border-color: #4a90d9;
+  border-color: #6B1FD6;
 }
 
 .size-separator {
-  color: rgba(255, 255, 255, 0.5);
-  font-size: 14px;
-  margin-top: 12px;
+  color: #505050;
+  font-size: 12px;
+  margin-top: 10px;
 }
 
 .apply-btn {
-  padding: 4px 10px;
-  font-size: 14px;
-  background: #1e5128;
+  padding: 3px 8px;
+  font-size: 12px;
+  background: #388E3C;
   border: 1px solid #2e7d32;
   border-radius: 4px;
   color: white;
   cursor: pointer;
-  margin-top: 12px;
+  margin-top: 10px;
 }
 
 .apply-btn:hover {
-  background: #2e7d32;
+  background: #4CAF50;
 }
 
 .page-info {
-  font-size: 10px;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 9px;
+  color: #505050;
   text-align: center;
   padding-top: 4px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 8px;
+  border-top: 1px solid #D0C0A8;
   margin-top: 4px;
-}
-
-.zoom-section {
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-  padding-top: 8px;
 }
 
 .zoom-buttons {
   display: flex;
-  gap: 4px;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
 }
 
 .zoom-btn {
-  flex: 1;
-  padding: 6px 8px;
+  padding: 6px 10px;
   font-size: 11px;
-  background: #1a1a2e;
-  border: 1px solid #0f3460;
-  border-radius: 4px;
-  color: rgba(255, 255, 255, 0.87);
+  background: #FAF4EC;
+  border: 2px solid #D0C0A8;
+  border-radius: 6px;
+  color: #303030;
   cursor: pointer;
   transition: all 0.15s ease;
+  white-space: nowrap;
+  text-align: center;
+  width: 100%;
 }
 
 .zoom-btn:hover {
-  background: #0f3460;
-  border-color: #4a90d9;
+  background: #EBE0D5;
+  border-color: #9575CD;
 }
+
+.fit-to-view-btn {
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+  border-color: #81C784;
+}
+
+.fit-to-view-btn:hover {
+  background: linear-gradient(135deg, #A5D6A7 0%, #81C784 100%);
+  border-color: #66BB6A;
+}
+
+.zoom-100-btn {
+  font-size: 11px;
+  padding: 5px 8px;
+}
+

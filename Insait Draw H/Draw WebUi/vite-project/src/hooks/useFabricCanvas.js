@@ -21,6 +21,12 @@ export function useFabricCanvas(canvasRef, containerRef) {
   const currentPath = useRef(null);
   const controlHandles = useRef([]);
   
+  // Path editing refs (for DIRECT_SELECT and ANCHOR_POINT tools)
+  const editingPath = useRef(null);
+  const editingPathHandles = useRef([]);
+  const selectedAnchorIndex = useRef(null);
+  const isDraggingAnchor = useRef(false);
+  
   // Допоміжна функція для оновлення попереднього перегляду шляху
   const updatePathPreview = useCallback((canvas, strokeColor, strokeWidth, smooth = false) => {
     if (!canvas || pathPoints.current.length === 0) return;
@@ -211,6 +217,171 @@ export function useFabricCanvas(canvasRef, containerRef) {
     isDrawingPath.current = false;
   }, []);
 
+  // Функція для входу в режим редагування шляху
+  const enterPathEditMode = useCallback((canvas, pathObject) => {
+    if (!canvas || !pathObject) return;
+    
+    // Якщо вже редагуємо інший шлях - вийти
+    if (editingPath.current && editingPath.current !== pathObject) {
+      exitPathEditMode(canvas);
+    }
+    
+    editingPath.current = pathObject;
+    
+    // Парсимо path data для отримання точок
+    const pathData = pathObject.path;
+    if (!pathData || !Array.isArray(pathData)) return;
+    
+    // Видаляємо старі handles
+    editingPathHandles.current.forEach(h => canvas.remove(h));
+    editingPathHandles.current = [];
+    
+    // Отримуємо трансформацію шляху
+    const matrix = pathObject.calcTransformMatrix();
+    
+    // Створюємо handles для кожної точки
+    let pointIndex = 0;
+    pathData.forEach((cmd, cmdIndex) => {
+      if (!cmd || cmd.length === 0) return;
+      
+      const type = cmd[0];
+      let x, y;
+      
+      // Визначаємо координати залежно від типу команди
+      if (type === 'M' || type === 'L') {
+        x = cmd[1];
+        y = cmd[2];
+      } else if (type === 'Q') {
+        // Quadratic bezier - показуємо тільки endpoint
+        x = cmd[3];
+        y = cmd[4];
+      } else if (type === 'C') {
+        // Cubic bezier - показуємо тільки endpoint
+        x = cmd[5];
+        y = cmd[6];
+      } else if (type === 'Z' || type === 'z') {
+        return; // Close path - пропускаємо
+      } else {
+        return;
+      }
+      
+      // Трансформуємо координати в canvas координати
+      const transformed = fabric.util.transformPoint(
+        new fabric.Point(x, y),
+        matrix
+      );
+      
+      const handle = new Circle({
+        left: transformed.x,
+        top: transformed.y,
+        radius: 6,
+        fill: '#4a90d9',
+        stroke: '#ffffff',
+        strokeWidth: 2,
+        selectable: true,
+        evented: true,
+        originX: 'center',
+        originY: 'center',
+        hasControls: false,
+        hasBorders: false,
+        lockScalingX: true,
+        lockScalingY: true,
+        hoverCursor: 'pointer',
+        moveCursor: 'move',
+      });
+      
+      // Зберігаємо інфо про handle
+      handle.anchorData = {
+        pathObject: pathObject,
+        cmdIndex: cmdIndex,
+        pointIndex: pointIndex,
+        type: type,
+      };
+      
+      canvas.add(handle);
+      editingPathHandles.current.push(handle);
+      pointIndex++;
+    });
+    
+    // Виділяємо шлях але забороняємо трансформації
+    pathObject.set({
+      hasControls: false,
+      hasBorders: true,
+      selectable: true,
+      lockMovementX: true,
+      lockMovementY: true,
+      borderColor: '#4a90d9',
+      borderDashArray: [5, 5],
+    });
+    
+    canvas.renderAll();
+  }, []);
+
+  // Функція для виходу з режиму редагування шляху  
+  const exitPathEditMode = useCallback((canvas) => {
+    if (!canvas) return;
+    
+    // Видаляємо handles
+    editingPathHandles.current.forEach(h => canvas.remove(h));
+    editingPathHandles.current = [];
+    
+    // Повертаємо властивості шляху
+    if (editingPath.current) {
+      editingPath.current.set({
+        hasControls: true,
+        hasBorders: true,
+        lockMovementX: false,
+        lockMovementY: false,
+        borderColor: undefined,
+        borderDashArray: undefined,
+      });
+    }
+    
+    editingPath.current = null;
+    selectedAnchorIndex.current = null;
+    isDraggingAnchor.current = false;
+    
+    canvas.renderAll();
+  }, []);
+
+  // Функція для оновлення позиції anchor точки
+  const updateAnchorPosition = useCallback((handle, canvas) => {
+    if (!handle || !handle.anchorData || !canvas) return;
+    
+    const { pathObject, cmdIndex, type } = handle.anchorData;
+    if (!pathObject || !pathObject.path) return;
+    
+    // Отримуємо інверсну матрицю для перетворення з canvas в path координати
+    const matrix = pathObject.calcTransformMatrix();
+    const invMatrix = fabric.util.invertTransform(matrix);
+    
+    // Перетворюємо позицію handle назад у path координати
+    const localPoint = fabric.util.transformPoint(
+      new fabric.Point(handle.left, handle.top),
+      invMatrix
+    );
+    
+    // Оновлюємо координати в path data
+    const cmd = pathObject.path[cmdIndex];
+    if (!cmd) return;
+    
+    if (type === 'M' || type === 'L') {
+      cmd[1] = localPoint.x;
+      cmd[2] = localPoint.y;
+    } else if (type === 'Q') {
+      cmd[3] = localPoint.x;
+      cmd[4] = localPoint.y;
+    } else if (type === 'C') {
+      cmd[5] = localPoint.x;
+      cmd[6] = localPoint.y;
+    }
+    
+    // Оновлюємо path
+    pathObject.set({ dirty: true });
+    pathObject._setPositionDimensions({});
+    canvas.renderAll();
+  }, []);
+
   // Ініціалізація канвасу
   const initCanvas = useCallback(() => {
     if (!canvasRef.current || isInitialized.current) return;
@@ -390,6 +561,53 @@ export function useFabricCanvas(canvasRef, containerRef) {
         isDrawingPath.current = true;
         return;
       }
+      
+      // DIRECT_SELECT tool - select and edit path anchor points
+      if (activeTool === TOOLS.DIRECT_SELECT) {
+        const target = opt.target;
+        
+        // Перевіряємо чи клікнули на anchor handle
+        if (target && target.anchorData) {
+          // Клікнули на anchor точку - виділяємо її
+          selectedAnchorIndex.current = target.anchorData.pointIndex;
+          isDraggingAnchor.current = true;
+          target.set({ fill: '#ff6b00' }); // Виділений колір
+          canvas.renderAll();
+          return;
+        }
+        
+        // Перевіряємо чи клікнули на path
+        if (target && target.type === 'path') {
+          // Вхід в режим редагування шляху
+          enterPathEditMode(canvas, target);
+          return;
+        }
+        
+        // Клікнули на порожнє місце - вихід з режиму редагування
+        if (editingPath.current) {
+          exitPathEditMode(canvas);
+        }
+        return;
+      }
+      
+      // ANCHOR_POINT tool - add/remove anchor points
+      if (activeTool === TOOLS.ANCHOR_POINT) {
+        const target = opt.target;
+        
+        // Клікнули на anchor - видаляємо його (TODO: реалізувати видалення точки)
+        if (target && target.anchorData) {
+          // Поки що просто виділяємо
+          selectedAnchorIndex.current = target.anchorData.pointIndex;
+          target.set({ fill: '#ff0000' });
+          canvas.renderAll();
+          return;
+        }
+        
+        // Клікнули на path - додаємо нову точку (TODO: реалізувати додавання точки)
+        if (target && target.type === 'path') {
+          enterPathEditMode(canvas, target);
+        }
+      }
     });
     
     // Mouse move
@@ -408,6 +626,12 @@ export function useFabricCanvas(canvasRef, containerRef) {
         lastPosX.current = clientX;
         lastPosY.current = clientY;
         canvas.requestRenderAll();
+        return;
+      }
+      
+      // DIRECT_SELECT - оновлення позиції anchor при перетягуванні
+      if (activeTool === TOOLS.DIRECT_SELECT && isDraggingAnchor.current && opt.target && opt.target.anchorData) {
+        updateAnchorPosition(opt.target, canvas);
         return;
       }
       
@@ -494,13 +718,24 @@ export function useFabricCanvas(canvasRef, containerRef) {
     });
     
     // Mouse up
-    canvas.on('mouse:up', () => {
+    canvas.on('mouse:up', (opt) => {
       const { activeTool, addLayer } = useEditorStore.getState();
       
       if (isPanning.current) {
         isPanning.current = false;
         canvas.selection = activeTool === TOOLS.SELECT;
         canvas.setCursor(activeTool === TOOLS.PAN ? 'grab' : 'default');
+        return;
+      }
+      
+      // DIRECT_SELECT - завершення перетягування anchor
+      if (activeTool === TOOLS.DIRECT_SELECT && isDraggingAnchor.current) {
+        isDraggingAnchor.current = false;
+        // Скидаємо колір handle
+        if (opt.target && opt.target.anchorData) {
+          opt.target.set({ fill: '#4a90d9' });
+          canvas.renderAll();
+        }
         return;
       }
       
@@ -584,7 +819,7 @@ export function useFabricCanvas(canvasRef, containerRef) {
         if (!canvas.freeDrawingBrush) {
           canvas.freeDrawingBrush = new PencilBrush(canvas);
         }
-        canvas.freeDrawingBrush.color = '#1a1a2e';
+        canvas.freeDrawingBrush.color = '#ffffff';
         canvas.freeDrawingBrush.width = state.strokeWidth * 2;
         canvas.selection = false;
         canvas.defaultCursor = 'crosshair';

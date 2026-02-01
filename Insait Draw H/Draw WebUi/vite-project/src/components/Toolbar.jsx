@@ -127,7 +127,7 @@ export function Toolbar() {
       {/* Tools */}
       <div className="tool-group">
         <span className="group-label">{t('tools')}</span>
-        <div className="tools">
+        <div className="tools-grid">
           <button
             className={`tool-btn ${activeTool === TOOLS.SELECT ? 'active' : ''}`}
             onClick={() => setActiveTool(TOOLS.SELECT)}

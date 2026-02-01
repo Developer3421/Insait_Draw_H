@@ -194,6 +194,20 @@ export const translations = {
     // Import
     importImage: 'Import',
     importImageTitle: 'Import image (PNG, JPEG, GIF, WebP, BMP, SVG)',
+    
+    // Properties Panel
+    properties: 'Properties',
+    selectObject: 'Select an object to edit its properties',
+    position: 'Position',
+    size: 'Size',
+    transform: 'Transform',
+    angle: 'Angle',
+    opacity: 'Opacity',
+    radius: 'Radius',
+    transparent: 'Transparent',
+    font: 'Font',
+    fontSize: 'Size',
+    textAlign: 'Align',
   },
   uk: {
     // Інструменти
@@ -335,6 +349,20 @@ export const translations = {
     // Імпорт
     importImage: 'Імпорт',
     importImageTitle: 'Імпорт зображення (PNG, JPEG, GIF, WebP, BMP, SVG)',
+    
+    // Панель властивостей
+    properties: 'Властивості',
+    selectObject: 'Виберіть об\'єкт для редагування',
+    position: 'Позиція',
+    size: 'Розмір',
+    transform: 'Трансформація',
+    angle: 'Кут',
+    opacity: 'Прозорість',
+    radius: 'Радіус',
+    transparent: 'Прозорий',
+    font: 'Шрифт',
+    fontSize: 'Розмір',
+    textAlign: 'Вирівнювання',
   },
   de: {
     // Werkzeuge
@@ -469,6 +497,20 @@ export const translations = {
     // Import
     importImage: 'Importieren',
     importImageTitle: 'Bild importieren (PNG, JPEG, GIF, WebP, BMP, SVG)',
+    
+    // Eigenschaftenpanel
+    properties: 'Eigenschaften',
+    selectObject: 'Objekt auswählen zum Bearbeiten',
+    position: 'Position',
+    size: 'Größe',
+    transform: 'Transformation',
+    angle: 'Winkel',
+    opacity: 'Deckkraft',
+    radius: 'Radius',
+    transparent: 'Transparent',
+    font: 'Schriftart',
+    fontSize: 'Größe',
+    textAlign: 'Ausrichtung',
   },
 };
 

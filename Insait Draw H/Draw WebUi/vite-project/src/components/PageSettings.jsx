@@ -118,19 +118,17 @@ export function PageSettings() {
         <div className="page-info">
           {pageSettings.width} × {pageSettings.height} px
         </div>
-      </div>
-      
-      <div className="settings-section zoom-section">
+        
         <div className="zoom-buttons">
           <button
-            className="zoom-btn"
+            className="zoom-btn fit-to-view-btn"
             onClick={handleFitToView}
             title={`${t('fitPageToView')} (Ctrl+1)`}
           >
             🔍 {t('fitPageToView')}
           </button>
           <button
-            className="zoom-btn"
+            className="zoom-btn zoom-100-btn"
             onClick={handleZoom100}
             title={`${t('zoom100')} (Ctrl+0)`}
           >

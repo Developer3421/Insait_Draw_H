@@ -3,9 +3,50 @@
         <OutputType>WinExe</OutputType>
         <TargetFramework>net10.0</TargetFramework>
         <Nullable>enable</Nullable>
+        <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
         <ApplicationManifest>app.manifest</ApplicationManifest>
         <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
         <ApplicationIcon>Icons\AppIcon1.ico</ApplicationIcon>
+        <LangVersion>14</LangVersion>
+        
+        <!-- Cross-platform RuntimeIdentifiers (publish with -r win-x64 / win-x86 / etc.) -->
+        <RuntimeIdentifiers>win-x64;win-x86;win-arm64</RuntimeIdentifiers>
+        
+        <!-- Package Properties -->
+        <Authors>Your Name</Authors>
+        <Company>Your Company</Company>
+        <Product>Insait Draw H</Product>
+        <Description>Insait Draw H - Drawing application</Description>
+        <Copyright>© 2026 Your Name. All rights reserved.</Copyright>
+        <AssemblyTitle>Insait Draw H</AssemblyTitle>
+        <AssemblyName>Insait Draw H</AssemblyName>
+        <Version>1.0.0</Version>
+        <FileVersion>1.0.0.0</FileVersion>
+        <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    </PropertyGroup>
+
+    <!-- Release configuration: single-file with self-extract for native libs -->
+    <!-- NOTE: CEF native libs will be extracted at runtime, but wwwroot is embedded -->
+    <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+        <PublishSingleFile>true</PublishSingleFile>
+        <SelfContained>true</SelfContained>
+        <!-- Do NOT hardcode RuntimeIdentifier here; pass -r on publish to target win-x64/win-x86 -->
+        <DebugType>none</DebugType>
+        <DebugSymbols>false</DebugSymbols>
+        
+        <!-- Exclude all PDB files from publish -->
+        <AllowedReferenceRelatedFileExtensions>none</AllowedReferenceRelatedFileExtensions>
+        <CopyOutputSymbolsToPublishDirectory>false</CopyOutputSymbolsToPublishDirectory>
+        
+        <!-- Include native libraries for self-extract (CEF needs this) -->
+        <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+        <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+        <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
+        
+        <PublishReadyToRun>false</PublishReadyToRun>
+        
+        <!-- Custom publish output path -->
+        <PublishDir>bin\Publish\</PublishDir>
     </PropertyGroup>
 
     <ItemGroup>
@@ -17,8 +58,16 @@
         <PackageReference Include="Avalonia.Diagnostics" Version="11.3.0">
             <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
             <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>none</IncludeAssets>
         </PackageReference>
         <PackageReference Include="WebViewControl-Avalonia" Version="3.120.11" />
+    </ItemGroup>
+
+    <!-- Exclude PDB files from publish -->
+    <ItemGroup Condition="'$(Configuration)' == 'Release'">
+      <Content Remove="**\*.pdb" />
+      <None Remove="**\*.pdb" />
     </ItemGroup>
 
     <ItemGroup>
@@ -29,4 +78,80 @@
       <AvaloniaResource Include="Draw WebUi\vite-project\Icons\AppIcon2.png" />
       <AvaloniaResource Include="Icons\**\*" />
     </ItemGroup>
+
+    <!-- Включаємо React dist файли як embedded resources для включення в exe -->
+    <ItemGroup>
+      <EmbeddedResource Include="Draw WebUi\vite-project\dist\**\*">
+        <LogicalName>Insait_Draw_H.wwwroot.%(RecursiveDir)%(Filename)%(Extension)</LogicalName>
+      </EmbeddedResource>
+    </ItemGroup>
+
+    <!-- Also include wwwroot as Content for single-file self-extract -->
+    <ItemGroup Condition="'$(Configuration)' == 'Release'">
+      <Content Include="Draw WebUi\vite-project\dist\**\*">
+        <Link>wwwroot\%(RecursiveDir)%(Filename)%(Extension)</Link>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        <ExcludeFromSingleFile>false</ExcludeFromSingleFile>
+      </Content>
+    </ItemGroup>
+
+    <!-- wwwroot копіюється автоматично через Content Include вище -->
+
+    <!-- Copy CefGlueBrowserProcess native folder to Build output -->
+    <Target Name="CopyCefGlueSubprocessToBuild" AfterTargets="Build">
+      <PropertyGroup>
+        <CefGluePackageVersion>3.120.11</CefGluePackageVersion>
+        <!-- Determine native RID folder based on RuntimeIdentifier -->
+        <CefNativeRid Condition="'$(RuntimeIdentifier)' == 'win-x64'">win-x64</CefNativeRid>
+        <CefNativeRid Condition="'$(RuntimeIdentifier)' == 'win-x86'">win-x86</CefNativeRid>
+        <CefNativeRid Condition="'$(CefNativeRid)' == ''">win-x64</CefNativeRid>
+        <CefGlueSubprocessPath>$(NuGetPackageRoot)webviewcontrol-avalonia.subprocess\$(CefGluePackageVersion)\runtimes\$(CefNativeRid)\native\CefGlueBrowserProcess</CefGlueSubprocessPath>
+      </PropertyGroup>
+      <ItemGroup>
+        <CefGlueSubprocessFiles Include="$(CefGlueSubprocessPath)\**\*" />
+      </ItemGroup>
+      <Message Importance="high" Text="Copying CefGlueBrowserProcess from $(CefGlueSubprocessPath) to $(OutputPath)CefGlueBrowserProcess..." />
+      <Copy SourceFiles="@(CefGlueSubprocessFiles)" 
+            DestinationFolder="$(OutputPath)CefGlueBrowserProcess\%(RecursiveDir)" 
+            SkipUnchangedFiles="true"
+            Condition="Exists('$(CefGlueSubprocessPath)')" />
+    </Target>
+
+    <!-- Copy CefGlueBrowserProcess native folder to Publish output -->
+    <Target Name="CopyCefGlueSubprocessToPublish" AfterTargets="Publish">
+      <PropertyGroup>
+        <CefGluePackageVersion>3.120.11</CefGluePackageVersion>
+        <!-- Determine native RID folder based on RuntimeIdentifier -->
+        <CefNativeRid Condition="'$(RuntimeIdentifier)' == 'win-x64'">win-x64</CefNativeRid>
+        <CefNativeRid Condition="'$(RuntimeIdentifier)' == 'win-x86'">win-x86</CefNativeRid>
+        <CefNativeRid Condition="'$(CefNativeRid)' == ''">win-x64</CefNativeRid>
+        <CefGlueSubprocessPath>$(NuGetPackageRoot)webviewcontrol-avalonia.subprocess\$(CefGluePackageVersion)\runtimes\$(CefNativeRid)\native\CefGlueBrowserProcess</CefGlueSubprocessPath>
+      </PropertyGroup>
+      <ItemGroup>
+        <CefGlueSubprocessFilesPublish Include="$(CefGlueSubprocessPath)\**\*" />
+      </ItemGroup>
+      <Message Importance="high" Text="Copying CefGlueBrowserProcess from $(CefGlueSubprocessPath) to $(PublishDir)CefGlueBrowserProcess..." />
+      <Copy SourceFiles="@(CefGlueSubprocessFilesPublish)" 
+            DestinationFolder="$(PublishDir)CefGlueBrowserProcess\%(RecursiveDir)" 
+            SkipUnchangedFiles="true"
+            Condition="Exists('$(CefGlueSubprocessPath)')" />
+    </Target>
+
+    <!-- Remove PDB files after publish -->
+    <Target Name="CleanupAfterPublish" AfterTargets="Publish" Condition="'$(Configuration)' == 'Release'">
+      <ItemGroup>
+        <PdbFiles Include="$(PublishDir)**\*.pdb" />
+      </ItemGroup>
+      <Delete Files="@(PdbFiles)" />
+      <Message Text="Cleaned up PDB files from publish output" Importance="high" />
+    </Target>
+
+    <!-- Optional: Build React app before building .NET app (comment out if you prefer manual builds) -->
+    <!--
+    <Target Name="BuildReactApp" BeforeTargets="BeforeBuild">
+      <Exec WorkingDirectory="Draw WebUi\vite-project" Command="npm install" ContinueOnError="true" />
+      <Exec WorkingDirectory="Draw WebUi\vite-project" Command="npm run build" ContinueOnError="true" />
+    </Target>
+    -->
 </Project>

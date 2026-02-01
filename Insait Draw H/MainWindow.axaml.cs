@@ -80,6 +80,8 @@ public partial class MainWindow : Window
     }
 
 
+    private bool _useEmbeddedResources;
+
     private void InitializeWebView()
     {
         var host = this.FindControl<ContentControl>("WebViewHost");
@@ -90,23 +92,39 @@ public partial class MainWindow : Window
 
         try
         {
-            // Отримуємо шлях до dist папки Vite проекту
-            _distFolder = GetDistFolder();
-            var localHtmlPath = _distFolder != null ? Path.Combine(_distFolder, "index.html") : null;
+            // Спочатку перевіряємо embedded resources (для production exe)
+            var hasEmbedded = EmbeddedResourceHelper.HasEmbeddedWebRoot();
+            var hasIndex = EmbeddedResourceHelper.ResourceExists("index.html");
+            _useEmbeddedResources = hasEmbedded && hasIndex;
             
-            if (string.IsNullOrEmpty(_distFolder) || !File.Exists(localHtmlPath))
+            // Діагностика (можна прибрати пізніше)
+            System.Diagnostics.Debug.WriteLine($"[WebView] HasEmbeddedWebRoot: {hasEmbedded}");
+            System.Diagnostics.Debug.WriteLine($"[WebView] ResourceExists(index.html): {hasIndex}");
+            System.Diagnostics.Debug.WriteLine($"[WebView] UseEmbeddedResources: {_useEmbeddedResources}");
+            System.Diagnostics.Debug.WriteLine(EmbeddedResourceHelper.GetDiagnosticInfo());
+
+            if (!_useEmbeddedResources)
             {
-                // Якщо dist не існує, показуємо повідомлення
-                host.Content = new TextBlock
+                // Якщо немає embedded resources, шукаємо на файловій системі
+                _distFolder = GetDistFolder();
+                var localHtmlPath = _distFolder != null ? Path.Combine(_distFolder, "index.html") : null;
+                System.Diagnostics.Debug.WriteLine($"[WebView] Fallback to filesystem: {_distFolder}");
+                
+                if (string.IsNullOrEmpty(_distFolder) || !File.Exists(localHtmlPath))
                 {
-                    Text = $"React build not found.\nPlease run 'npm run build' in the vite-project folder.\nExpected path: {localHtmlPath}",
-                    TextWrapping = TextWrapping.Wrap,
-                    Foreground = Brushes.DimGray,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Margin = new Thickness(24)
-                };
-                return;
+                    // Якщо dist не існує, показуємо повідомлення
+                    var diagInfo = EmbeddedResourceHelper.GetDiagnosticInfo();
+                    host.Content = new TextBlock
+                    {
+                        Text = $"React build not found.\nPlease run 'npm run build' in the vite-project folder.\nExpected path: {localHtmlPath}\n\nDiagnostic Info:\n{diagInfo}",
+                        TextWrapping = TextWrapping.Wrap,
+                        Foreground = Brushes.DimGray,
+                        HorizontalAlignment = HorizontalAlignment.Center,
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Margin = new Thickness(24)
+                    };
+                    return;
+                }
             }
 
             // Запускаємо локальний HTTP сервер
@@ -306,23 +324,43 @@ public partial class MainWindow : Window
             // Декодуємо URL
             urlPath = Uri.UnescapeDataString(urlPath.Split('?')[0]);
 
-            var localPath = Path.Combine(_distFolder!, urlPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
-
             byte[] responseBody;
             string statusLine;
             string contentType;
 
-            if (File.Exists(localPath))
+            // Спочатку пробуємо embedded resources, потім файлову систему
+            if (_useEmbeddedResources)
             {
-                responseBody = File.ReadAllBytes(localPath);
-                statusLine = "HTTP/1.1 200 OK";
-                contentType = GetMimeType(localPath);
+                var resourceData = EmbeddedResourceHelper.GetResource(urlPath);
+                if (resourceData != null)
+                {
+                    responseBody = resourceData;
+                    statusLine = "HTTP/1.1 200 OK";
+                    contentType = GetMimeType(urlPath);
+                }
+                else
+                {
+                    responseBody = Encoding.UTF8.GetBytes("404 Not Found");
+                    statusLine = "HTTP/1.1 404 Not Found";
+                    contentType = "text/plain";
+                }
             }
             else
             {
-                responseBody = Encoding.UTF8.GetBytes("404 Not Found");
-                statusLine = "HTTP/1.1 404 Not Found";
-                contentType = "text/plain";
+                var localPath = Path.Combine(_distFolder!, urlPath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar));
+
+                if (File.Exists(localPath))
+                {
+                    responseBody = File.ReadAllBytes(localPath);
+                    statusLine = "HTTP/1.1 200 OK";
+                    contentType = GetMimeType(localPath);
+                }
+                else
+                {
+                    responseBody = Encoding.UTF8.GetBytes("404 Not Found");
+                    statusLine = "HTTP/1.1 404 Not Found";
+                    contentType = "text/plain";
+                }
             }
 
             var responseHeader = $"{statusLine}\r\n" +
@@ -377,7 +415,14 @@ public partial class MainWindow : Window
     private static string? GetDistFolder()
     {
         // Отримуємо директорію виконуваного файлу
-        var exeDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        // Використовуємо AppContext.BaseDirectory бо він працює коректно при single-file publish
+        var exeDir = AppContext.BaseDirectory;
+        
+        // Fallback на Assembly.Location якщо потрібно
+        if (string.IsNullOrEmpty(exeDir))
+        {
+            exeDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+        }
         
         if (string.IsNullOrEmpty(exeDir))
         {
@@ -389,17 +434,27 @@ public partial class MainWindow : Window
         {
             // Для release/production - wwwroot поруч з exe
             Path.Combine(exeDir, "wwwroot"),
-            // Для розробки - шукаємо відносно проекту
-            Path.GetFullPath(Path.Combine(exeDir, "..", "..", "..", "Draw WebUi", "vite-project", "dist"))
+            // Для розробки - шукаємо відносно проекту (з bin/Debug/net10.0)
+            Path.GetFullPath(Path.Combine(exeDir, "..", "..", "..", "Draw WebUi", "vite-project", "dist")),
+            // Альтернативний шлях для розробки
+            Path.GetFullPath(Path.Combine(exeDir, "..", "..", "..", "..", "Insait Draw H", "Draw WebUi", "vite-project", "dist"))
         };
 
         foreach (var path in possiblePaths)
         {
-            var fullPath = Path.GetFullPath(path);
-            var indexPath = Path.Combine(fullPath, "index.html");
-            if (File.Exists(indexPath))
+            try
             {
-                return fullPath;
+                var fullPath = Path.GetFullPath(path);
+                var indexPath = Path.Combine(fullPath, "index.html");
+                if (Directory.Exists(fullPath) && File.Exists(indexPath))
+                {
+                    return fullPath;
+                }
+            }
+            catch
+            {
+                // Ігноруємо помилки при перевірці шляхів
+                continue;
             }
         }
 
