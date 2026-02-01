@@ -1,0 +1,131 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="550" d:DesignHeight="500"
+        x:Class="Insait_Draw_H.UserAgreementWindow"
+        Title="User Agreement"
+        WindowStartupLocation="CenterOwner"
+        SizeToContent="WidthAndHeight"
+        CanResize="False"
+        SystemDecorations="BorderOnly"
+        Background="#FFF5E6D3">
+
+    <Window.Resources>
+        <LinearGradientBrush x:Key="OrangePurpleGradient" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#FFFF9500" Offset="0"/>
+            <GradientStop Color="#FFFF6B35" Offset="0.35"/>
+            <GradientStop Color="#FFD946EF" Offset="0.65"/>
+            <GradientStop Color="#FF9B59B6" Offset="1"/>
+        </LinearGradientBrush>
+    </Window.Resources>
+
+    <Border Padding="28" MinWidth="420" MaxWidth="480" MinHeight="450">
+        <StackPanel Spacing="20">
+            <!-- Header with Shield -->
+            <StackPanel Orientation="Horizontal" Spacing="16" HorizontalAlignment="Center" 
+                        Name="HeaderPanel" PointerPressed="HeaderPanel_OnPointerPressed" 
+                        Background="Transparent" Cursor="Hand">
+                <Border Width="56" Height="56" CornerRadius="12" 
+                        Background="{StaticResource OrangePurpleGradient}">
+                    <Viewbox Width="32" Height="32">
+                        <Canvas Width="24" Height="24">
+                            <Path Fill="White" Data="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+                        </Canvas>
+                    </Viewbox>
+                </Border>
+                <StackPanel VerticalAlignment="Center" Spacing="4">
+                    <TextBlock Text="User Agreement" 
+                               FontSize="24" FontWeight="Bold" 
+                               Foreground="#FF303030"/>
+                    <TextBlock Text="Privacy and Terms of Use" 
+                               FontSize="13" 
+                               Foreground="#FF707070"/>
+                </StackPanel>
+            </StackPanel>
+
+            <!-- Separator -->
+            <Border Height="1" Background="#FFE0D0C0"/>
+
+            <!-- Content -->
+            <ScrollViewer MaxHeight="280" VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="16">
+                    <!-- Data Storage Section -->
+                    <Border Background="#FFFDF7EF" CornerRadius="8" Padding="16">
+                        <StackPanel Spacing="8">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Viewbox Width="20" Height="20">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Fill="#FF4CAF50" Data="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+                                    </Canvas>
+                                </Viewbox>
+                                <TextBlock Text="Local Data Storage" 
+                                           FontSize="16" FontWeight="SemiBold"
+                                           Foreground="#FF404040"/>
+                            </StackPanel>
+                            <TextBlock TextWrapping="Wrap" FontSize="13" Foreground="#FF606060"
+                                       Text="All your data, including projects, settings, and preferences, are stored locally on your computer. No data is transmitted to external servers or cloud services. Your creative work remains completely under your control and on your device."/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- As-Is Section -->
+                    <Border Background="#FFFDF7EF" CornerRadius="8" Padding="16">
+                        <StackPanel Spacing="8">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Viewbox Width="20" Height="20">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Fill="#FFFF9800" Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                                    </Canvas>
+                                </Viewbox>
+                                <TextBlock Text="Provided 'As Is'" 
+                                           FontSize="16" FontWeight="SemiBold"
+                                           Foreground="#FF404040"/>
+                            </StackPanel>
+                            <TextBlock TextWrapping="Wrap" FontSize="13" Foreground="#FF606060"
+                                       Text="This application is provided 'as is' without any warranties, express or implied. The author does not guarantee that the software will be error-free or uninterrupted. Use of this software is at your own risk."/>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- Disclaimer Section -->
+                    <Border Background="#FFFDF7EF" CornerRadius="8" Padding="16">
+                        <StackPanel Spacing="8">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <Viewbox Width="20" Height="20">
+                                    <Canvas Width="24" Height="24">
+                                        <Path Fill="#FF9B59B6" Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                                    </Canvas>
+                                </Viewbox>
+                                <TextBlock Text="Acceptance of Terms" 
+                                           FontSize="16" FontWeight="SemiBold"
+                                           Foreground="#FF404040"/>
+                            </StackPanel>
+                            <TextBlock TextWrapping="Wrap" FontSize="13" Foreground="#FF606060"
+                                       Text="By using Insait Draw H, you acknowledge that you have read and understood these terms. The author shall not be liable for any direct, indirect, incidental, or consequential damages arising from the use of this software."/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- Separator -->
+            <Border Height="1" Background="#FFE0D0C0"/>
+
+            <!-- Footer -->
+            <StackPanel Spacing="12" HorizontalAlignment="Center">
+                <TextBlock Text="© 2026 Oleh Kurylo. All rights reserved." 
+                           FontSize="11" 
+                           Foreground="#FF909090"
+                           HorizontalAlignment="Center"/>
+                
+                <Button Content="I Understand" 
+                        HorizontalAlignment="Center"
+                        Padding="40,12"
+                        FontSize="14"
+                        FontWeight="SemiBold"
+                        Background="{StaticResource OrangePurpleGradient}"
+                        Foreground="White"
+                        CornerRadius="8"
+                        Click="CloseButton_OnClick"/>
+            </StackPanel>
+        </StackPanel>
+    </Border>
+</Window>

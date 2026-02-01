@@ -37,6 +37,13 @@
             <GradientStop Color="#FFC5C5C5" Offset="0.7"/>
             <GradientStop Color="#FFC0C0C0" Offset="1"/>
         </LinearGradientBrush>
+        
+        <LinearGradientBrush x:Key="OrangePurpleGradient" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#FFFF9500" Offset="0"/>
+            <GradientStop Color="#FFFF6B35" Offset="0.35"/>
+            <GradientStop Color="#FFD946EF" Offset="0.65"/>
+            <GradientStop Color="#FF9B59B6" Offset="1"/>
+        </LinearGradientBrush>
     </Window.Resources>
 
     <Window.Styles>
@@ -45,7 +52,7 @@
             <Setter Property="Foreground" Value="#303030"/>
             <Setter Property="BorderThickness" Value="0"/>
             <Setter Property="Width" Value="48"/>
-            <Setter Property="Height" Value="32"/>
+            <Setter Property="Height" Value="38"/>
             <Setter Property="FontSize" Value="12"/>
             <Setter Property="FontFamily" Value="Segoe UI"/>
             <Setter Property="Cursor" Value="Hand"/>
@@ -57,6 +64,19 @@
         </Style>
         <Style Selector="Button.window-control.close:pointerover">
             <Setter Property="Background" Value="#40FF5C5C"/>
+        </Style>
+        <Style Selector="Button.accent-button">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Width" Value="38"/>
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="4"/>
+        </Style>
+        <Style Selector="Button.accent-button:pointerover">
+            <Setter Property="Background" Value="#30FF9500"/>
         </Style>
     </Window.Styles>
 
@@ -72,9 +92,40 @@
                 <Panel Grid.Column="1" Background="Transparent" />
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="4">
-                    <Button Name="MinimizeButton" Classes="window-control" Click="MinimizeButton_OnClick">-</Button>
-                    <Button Name="MaximizeButton" Classes="window-control" Click="MaximizeButton_OnClick">[]</Button>
-                    <Button Name="CloseButton" Classes="window-control close" Click="CloseButton_OnClick">X</Button>
+                    <!-- Accent buttons -->
+                    <Button Name="UserAgreementButton" Classes="accent-button" Click="UserAgreementButton_OnClick" ToolTip.Tip="User Agreement">
+                        <Border Width="28" Height="28" CornerRadius="6" Background="{StaticResource OrangePurpleGradient}">
+                            <Viewbox Width="18" Height="18">
+                                <Canvas Width="24" Height="24">
+                                    <!-- Shield with checkmark -->
+                                    <Path Fill="White" Data="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/>
+                                </Canvas>
+                            </Viewbox>
+                        </Border>
+                    </Button>
+                    <Button Name="AboutButton" Classes="accent-button" Click="AboutButton_OnClick" ToolTip.Tip="About">
+                        <Border Width="28" Height="28" CornerRadius="14" Background="{StaticResource OrangePurpleGradient}">
+                            <Viewbox Width="18" Height="18">
+                                <Canvas Width="24" Height="24">
+                                    <!-- Info icon -->
+                                    <Path Fill="White" Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                                </Canvas>
+                            </Viewbox>
+                        </Border>
+                    </Button>
+
+                    <Border Width="1" Height="24" Background="#40606060" Margin="8,0"/>
+
+                    <!-- Window control buttons -->
+                    <Button Name="MinimizeButton" Classes="window-control" Click="MinimizeButton_OnClick">
+                        <Image Source="avares://Insait%20Draw%20H/Icons/MinButton.png" Width="24" Height="24"/>
+                    </Button>
+                    <Button Name="MaximizeButton" Classes="window-control" Click="MaximizeButton_OnClick">
+                        <Image Source="avares://Insait%20Draw%20H/Icons/MaxButton.png" Width="24" Height="24"/>
+                    </Button>
+                    <Button Name="CloseButton" Classes="window-control close" Click="CloseButton_OnClick">
+                        <Image Source="avares://Insait%20Draw%20H/Icons/CloseButton.png" Width="24" Height="24"/>
+                    </Button>
                 </StackPanel>
             </Grid>
         </Grid>

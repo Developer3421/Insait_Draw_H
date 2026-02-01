@@ -17,11 +17,11 @@ export const PAGE_PRESETS = {
 
 // Кольори теми додатку
 export const THEME_COLORS = {
-  // Pasteboard (робочий простір за межами аркуша)
-  pasteboard: '#606060',
+  // Pasteboard (робочий простір за межами аркуша) - ніжно-оранжевий
+  pasteboard: '#F5E6D3',
   // Аркуш (page/artboard)
   page: '#FFFFFF',
-  pageShadow: 'rgba(0, 0, 0, 0.3)',
+  pageShadow: 'rgba(100, 80, 60, 0.25)',
   background: '#16213e',
   backgroundDark: '#0f0f1a',
   surface: '#1a1a2e',

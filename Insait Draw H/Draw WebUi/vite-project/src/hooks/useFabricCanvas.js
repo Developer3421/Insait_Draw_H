@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 import * as fabric from 'fabric';
-import { useEditorStore, TOOLS } from '../stores/editorStore';
+import { useEditorStore, TOOLS, THEME_COLORS } from '../stores/editorStore';
 import { useLanguageStore } from '../stores/languageStore';
 
 const { Canvas, Rect, Circle, Triangle, Line, IText, PencilBrush } = fabric;

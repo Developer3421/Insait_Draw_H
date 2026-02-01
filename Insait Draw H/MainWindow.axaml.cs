@@ -38,7 +38,9 @@ public partial class MainWindow : Window
 
     private void TitleBar_OnPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+        // Підтримка перетягування вікна як мишею, так і тачем на Windows планшетах
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed || 
+            e.GetCurrentPoint(this).Properties.PointerUpdateKind == PointerUpdateKind.LeftButtonPressed)
         {
             BeginMoveDrag(e);
         }
@@ -57,6 +59,18 @@ public partial class MainWindow : Window
     private void CloseButton_OnClick(object? sender, RoutedEventArgs e)
     {
         Close();
+    }
+
+    private async void UserAgreementButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        var dialog = new UserAgreementWindow();
+        await dialog.ShowDialog(this);
+    }
+
+    private async void AboutButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        var dialog = new AboutWindow();
+        await dialog.ShowDialog(this);
     }
 
     private void InitializeWebView()

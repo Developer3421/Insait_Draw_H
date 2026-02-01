@@ -22,5 +22,10 @@
 
     <ItemGroup>
       <Folder Include="Draw WebUi\" />
+      <Folder Include="Draw WebUi\vite-project\Icons\" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <AvaloniaResource Include="Icons\**\*" />
     </ItemGroup>
 </Project>

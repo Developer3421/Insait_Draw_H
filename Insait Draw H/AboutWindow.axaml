@@ -1,0 +1,91 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="450" d:DesignHeight="380"
+        x:Class="Insait_Draw_H.AboutWindow"
+        Title="About Insait Draw H"
+        WindowStartupLocation="CenterOwner"
+        SizeToContent="WidthAndHeight"
+        CanResize="False"
+        SystemDecorations="BorderOnly"
+        Background="#FFF5E6D3">
+
+    <Window.Resources>
+        <LinearGradientBrush x:Key="OrangePurpleGradient" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#FFFF9500" Offset="0"/>
+            <GradientStop Color="#FFFF6B35" Offset="0.35"/>
+            <GradientStop Color="#FFD946EF" Offset="0.65"/>
+            <GradientStop Color="#FF9B59B6" Offset="1"/>
+        </LinearGradientBrush>
+    </Window.Resources>
+
+    <Border Padding="32" MinWidth="420" MinHeight="350">
+        <StackPanel Spacing="20" HorizontalAlignment="Center">
+            <!-- Logo -->
+            <Border Width="80" Height="80" CornerRadius="16" 
+                    Background="{StaticResource OrangePurpleGradient}"
+                    HorizontalAlignment="Center"
+                    Name="LogoPanel" PointerPressed="LogoPanel_OnPointerPressed"
+                    Cursor="Hand">
+                <Viewbox Width="48" Height="48">
+                    <Canvas Width="24" Height="24">
+                        <Path Fill="White" Data="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/>
+                    </Canvas>
+                </Viewbox>
+            </Border>
+
+            <!-- App Name -->
+            <StackPanel Spacing="4" HorizontalAlignment="Center">
+                <TextBlock Text="Insait Draw H" 
+                           FontSize="28" FontWeight="Bold" 
+                           Foreground="#FF303030"
+                           HorizontalAlignment="Center"/>
+                <TextBlock Text="Version 1.0.0" 
+                           FontSize="14" 
+                           Foreground="#FF707070"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Description -->
+            <TextBlock Text="A modern vector graphics editor with an intuitive interface for creating illustrations, designs, and artwork." 
+                       FontSize="14" 
+                       Foreground="#FF505050"
+                       TextWrapping="Wrap"
+                       TextAlignment="Center"
+                       MaxWidth="360"
+                       HorizontalAlignment="Center"/>
+
+            <!-- Separator -->
+            <Border Height="1" Background="#FFE0D0C0" Margin="20,0"/>
+
+            <!-- Author -->
+            <StackPanel Spacing="8" HorizontalAlignment="Center">
+                <TextBlock Text="Author" 
+                           FontSize="12" 
+                           Foreground="#FF909090"
+                           HorizontalAlignment="Center"/>
+                <TextBlock Text="Oleh Kurylo" 
+                           FontSize="18" FontWeight="SemiBold"
+                           Foreground="#FF404040"
+                           HorizontalAlignment="Center"/>
+            </StackPanel>
+
+            <!-- Copyright -->
+            <TextBlock Text="© 2026 Insait Draw H. All rights reserved." 
+                       FontSize="11" 
+                       Foreground="#FF909090"
+                       HorizontalAlignment="Center"/>
+
+            <!-- Close Button -->
+            <Button Content="Close" 
+                    HorizontalAlignment="Center"
+                    Padding="32,10"
+                    FontSize="14"
+                    Background="{StaticResource OrangePurpleGradient}"
+                    Foreground="White"
+                    CornerRadius="8"
+                    Click="CloseButton_OnClick"/>
+        </StackPanel>
+    </Border>
+</Window>
