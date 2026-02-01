@@ -9,6 +9,32 @@ public partial class AboutWindow : Window
     public AboutWindow()
     {
         InitializeComponent();
+        UpdateTexts();
+    }
+
+    private void UpdateTexts()
+    {
+        Title = LanguageManager.GetText("aboutTitle");
+        
+        var versionLabel = this.FindControl<TextBlock>("VersionLabel");
+        if (versionLabel != null)
+            versionLabel.Text = LanguageManager.GetText("version") + " 1.0.0";
+        
+        var descriptionText = this.FindControl<TextBlock>("DescriptionText");
+        if (descriptionText != null)
+            descriptionText.Text = LanguageManager.GetText("description");
+        
+        var authorLabel = this.FindControl<TextBlock>("AuthorLabel");
+        if (authorLabel != null)
+            authorLabel.Text = LanguageManager.GetText("author");
+        
+        var copyrightText = this.FindControl<TextBlock>("CopyrightText");
+        if (copyrightText != null)
+            copyrightText.Text = LanguageManager.GetText("copyright");
+        
+        var closeButton = this.FindControl<Button>("CloseButton");
+        if (closeButton != null)
+            closeButton.Content = LanguageManager.GetText("close");
     }
 
     private void LogoPanel_OnPointerPressed(object? sender, PointerPressedEventArgs e)

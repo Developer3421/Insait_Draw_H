@@ -73,6 +73,13 @@ public partial class MainWindow : Window
         await dialog.ShowDialog(this);
     }
 
+    private async void LanguageButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        var dialog = new LanguageSelectionWindow();
+        await dialog.ShowDialog(this);
+    }
+
+
     private void InitializeWebView()
     {
         var host = this.FindControl<ContentControl>("WebViewHost");

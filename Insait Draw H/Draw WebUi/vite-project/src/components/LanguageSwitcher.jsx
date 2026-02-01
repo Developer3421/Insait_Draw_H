@@ -4,22 +4,21 @@ import './LanguageSwitcher.css';
 export function LanguageSwitcher() {
   const { language, setLanguage } = useLanguageStore();
 
+  const handleLanguageChange = (e) => {
+    setLanguage(e.target.value);
+  };
+
   return (
     <div className="language-switcher">
-      <button
-        className={`lang-btn ${language === 'en' ? 'active' : ''}`}
-        onClick={() => setLanguage('en')}
-        title="English"
+      <select 
+        className="language-select" 
+        value={language} 
+        onChange={handleLanguageChange}
       >
-        EN
-      </button>
-      <button
-        className={`lang-btn ${language === 'uk' ? 'active' : ''}`}
-        onClick={() => setLanguage('uk')}
-        title="Українська"
-      >
-        UA
-      </button>
+        <option value="en">🇬🇧 English</option>
+        <option value="uk">🇺🇦 Українська</option>
+        <option value="de">🇩🇪 Deutsch</option>
+      </select>
     </div>
   );
 }

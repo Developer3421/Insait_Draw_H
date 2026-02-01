@@ -1,12 +1,8 @@
 .canvas-area {
   flex: 1 1 auto;
   position: relative;
-  /* Soft orange pasteboard with grid pattern */
-  background-color: #F5E6D3;
-  background-image: 
-    linear-gradient(rgba(200, 180, 160, 0.3) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(200, 180, 160, 0.3) 1px, transparent 1px);
-  background-size: 20px 20px;
+  /* Ніжно-оранжевий робочий простір - сітка малюється JavaScript */
+  background-color: #FFE4C4;
   overflow: hidden;
   min-height: 0;
   min-width: 0;
@@ -23,7 +19,7 @@
   right: 0;
   bottom: 0;
   pointer-events: none;
-  z-index: 10;
+  z-index: 0;
   display: block;
   background: transparent;
 }
@@ -36,12 +32,13 @@
   touch-action: none;
 }
 
-/* Fabric.js container */
+/* Fabric.js container - прозорий фон, щоб видно було сітку */
 .canvas-area .canvas-container {
   position: absolute !important;
   top: 0 !important;
   left: 0 !important;
   z-index: 2 !important;
+  background: transparent !important;
 }
 
 .canvas-area .canvas-container canvas {

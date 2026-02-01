@@ -41,14 +41,14 @@
                            FontSize="28" FontWeight="Bold" 
                            Foreground="#FF303030"
                            HorizontalAlignment="Center"/>
-                <TextBlock Text="Version 1.0.0" 
+                <TextBlock Name="VersionLabel" Text="Version 1.0.0" 
                            FontSize="14" 
                            Foreground="#FF707070"
                            HorizontalAlignment="Center"/>
             </StackPanel>
 
             <!-- Description -->
-            <TextBlock Text="A modern vector graphics editor with an intuitive interface for creating illustrations, designs, and artwork." 
+            <TextBlock Name="DescriptionText" Text="A modern vector graphics editor with an intuitive interface for creating illustrations, designs, and artwork." 
                        FontSize="14" 
                        Foreground="#FF505050"
                        TextWrapping="Wrap"
@@ -61,7 +61,7 @@
 
             <!-- Author -->
             <StackPanel Spacing="8" HorizontalAlignment="Center">
-                <TextBlock Text="Author" 
+                <TextBlock Name="AuthorLabel" Text="Author" 
                            FontSize="12" 
                            Foreground="#FF909090"
                            HorizontalAlignment="Center"/>
@@ -72,13 +72,13 @@
             </StackPanel>
 
             <!-- Copyright -->
-            <TextBlock Text="© 2026 Insait Draw H. All rights reserved." 
+            <TextBlock Name="CopyrightText" Text="© 2026 Insait Draw H. All rights reserved." 
                        FontSize="11" 
                        Foreground="#FF909090"
                        HorizontalAlignment="Center"/>
 
             <!-- Close Button -->
-            <Button Content="Close" 
+            <Button Name="CloseButton" Content="Close" 
                     HorizontalAlignment="Center"
                     Padding="32,10"
                     FontSize="14"

@@ -261,6 +261,135 @@ export const translations = {
     zoom100: 'Масштаб 100%',
     alignToPage: 'Вирівняти до сторінки',
   },
+  de: {
+    // Werkzeuge
+    tools: 'Werkzeuge',
+    select: 'Auswahl',
+    pan: 'Leinwand verschieben',
+    brush: 'Pinsel',
+    eraser: 'Radiergummi',
+    
+    // Formen
+    shapes: 'Formen',
+    line: 'Linie',
+    rectangle: 'Rechteck',
+    circle: 'Kreis',
+    triangle: 'Dreieck',
+    text: 'Text',
+    textDoubleClick: 'Text (Doppelklick zum Hinzufügen)',
+    
+    // Farben
+    colors: 'Farben',
+    fill: 'Füllung',
+    stroke: 'Kontur',
+    clickFillRightClickStroke: 'Klick - Füllung, Rechtsklick - Kontur',
+    
+    // Kontur
+    strokeWidth: 'Kontur',
+    
+    // Texteinstellungen
+    textSettings: 'Text',
+    
+    // Zoom
+    zoom: 'Zoom',
+    zoomIn: 'Vergrößern',
+    zoomOut: 'Verkleinern',
+    resetZoom: 'Zurücksetzen',
+    
+    // Einrasten
+    snapping: 'Einrasten',
+    grid: 'Raster',
+    toGrid: 'Am Raster',
+    toObjects: 'An Objekten',
+    
+    // Aktionen
+    history: 'Verlauf',
+    undo: 'Rückgängig',
+    redo: 'Wiederholen',
+    
+    // Bearbeiten
+    editing: 'Bearbeiten',
+    copy: 'Kopieren',
+    paste: 'Einfügen',
+    delete: 'Löschen',
+    
+    // Datei
+    file: 'Datei',
+    savePNG: 'PNG',
+    save: 'Speichern',
+    open: 'Öffnen',
+    clear: 'Löschen',
+    clearConfirm: 'Sind Sie sicher, dass Sie die Leinwand löschen möchten?',
+    loadError: 'Fehler beim Laden der Datei: ',
+    
+    // Ebenen
+    layers: 'Ebenen',
+    noObjects: 'Keine Objekte',
+    enterNewName: 'Neuen Ebenennamen eingeben:',
+    hide: 'Ausblenden',
+    show: 'Anzeigen',
+    lock: 'Sperren',
+    unlock: 'Entsperren',
+    up: 'Nach oben',
+    down: 'Nach unten',
+    deleteLayer: 'Löschen',
+    toFront: 'In den Vordergrund',
+    toBack: 'In den Hintergrund',
+    doubleClickRename: 'Doppelklick zum Umbenennen',
+    
+    // Boolean-Operationen
+    combine: 'Kombinieren',
+    union: 'Vereinigen',
+    subtract: 'Subtrahieren',
+    intersect: 'Schnittmenge',
+    
+    // Gruppierung
+    grouping: 'Gruppierung',
+    group: 'Gruppieren',
+    ungroup: 'Gruppierung aufheben',
+    
+    // Ausrichtung
+    alignment: 'Ausrichtung',
+    alignLeft: 'Links ausrichten',
+    alignCenter: 'Horizontal zentrieren',
+    alignRight: 'Rechts ausrichten',
+    alignTop: 'Oben ausrichten',
+    alignMiddle: 'Vertikal zentrieren',
+    alignBottom: 'Unten ausrichten',
+    
+    // Benachrichtigungen
+    selectTwoObjects: 'Wählen Sie genau 2 Objekte für Boolean-Operation',
+    operationOnlyForShapes: 'Operation wird nur für Grundformen unterstützt',
+    emptyResult: 'Operationsergebnis ist leer',
+    selectMinTwoGroup: 'Wählen Sie mindestens 2 Objekte zum Gruppieren',
+    selectGroup: 'Wählen Sie eine Gruppe zum Aufheben der Gruppierung',
+    selectMinTwoAlign: 'Wählen Sie mindestens 2 Objekte zum Ausrichten',
+    
+    // Statusleiste
+    tool: 'Werkzeug',
+    objects: 'Objekte',
+    selected: 'Ausgewählt',
+    mouseWheelZoom: 'Mausrad: Zoom',
+    altDragPan: 'Alt+Ziehen: Verschieben',
+    
+    // Standardtext
+    defaultText: 'Text',
+    
+    // Sprache
+    language: 'Sprache',
+    
+    // Seiteneinstellungen
+    page: 'Seite',
+    pageSize: 'Seitengröße',
+    portrait: 'Hochformat',
+    landscape: 'Querformat',
+    custom: 'Benutzerdefiniert',
+    width: 'Breite',
+    height: 'Höhe',
+    fitPageToView: 'An Ansicht anpassen',
+    zoom100: 'Zoom 100%',
+    alignToPage: 'An Seite ausrichten',
+  },
 };
 
 export const useLanguageStore = create(

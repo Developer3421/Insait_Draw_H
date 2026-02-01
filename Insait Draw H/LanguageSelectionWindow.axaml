@@ -1,0 +1,126 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="320" d:DesignHeight="150"
+        x:Class="Insait_Draw_H.LanguageSelectionWindow"
+        Title="Language / Мова"
+        WindowStartupLocation="CenterOwner"
+        SystemDecorations="None"
+        Width="320"
+        Height="150"
+        CanResize="False"
+        UseLayoutRounding="True"
+        FontFamily="Segoe UI, Arial, Tahoma"
+        Background="#FFF5E6D3">
+
+    <Window.Resources>
+        <Color x:Key="AppBgColor">#FFF5E6D3</Color>
+        <Color x:Key="AppSurfaceColor">#FFFDF7EF</Color>
+        <Color x:Key="AppBorderColor">#FFE8D5B7</Color>
+        <Color x:Key="AppTextColor">#FF404040</Color>
+        <Color x:Key="AccentPurpleColor">#7D2AE8</Color>
+
+        <SolidColorBrush x:Key="AppBgBrush" Color="{StaticResource AppBgColor}" />
+        <SolidColorBrush x:Key="AppSurfaceBrush" Color="{StaticResource AppSurfaceColor}" />
+        <SolidColorBrush x:Key="AppBorderBrush" Color="{StaticResource AppBorderColor}" />
+        <SolidColorBrush x:Key="AppTextBrush" Color="{StaticResource AppTextColor}" />
+        <SolidColorBrush x:Key="AccentPurpleBrush" Color="{StaticResource AccentPurpleColor}" />
+
+        <LinearGradientBrush x:Key="GrayGradient" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#FFE0E0E0" Offset="0"/>
+            <GradientStop Color="#FFD0D0D0" Offset="0.3"/>
+            <GradientStop Color="#FFC5C5C5" Offset="0.7"/>
+            <GradientStop Color="#FFC0C0C0" Offset="1"/>
+        </LinearGradientBrush>
+
+        <LinearGradientBrush x:Key="OrangePurpleGradient" StartPoint="0,0" EndPoint="1,1">
+            <GradientStop Color="#FFFF9500" Offset="0"/>
+            <GradientStop Color="#FFFF6B35" Offset="0.35"/>
+            <GradientStop Color="#FFD946EF" Offset="0.65"/>
+            <GradientStop Color="#FF9B59B6" Offset="1"/>
+        </LinearGradientBrush>
+    </Window.Resources>
+
+    <Window.Styles>
+        <Style Selector="Button.window-control">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#303030"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Width" Value="48"/>
+            <Setter Property="Height" Value="38"/>
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="FontFamily" Value="Segoe UI"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+        </Style>
+        <Style Selector="Button.window-control:pointerover">
+            <Setter Property="Background" Value="#40FFFFFF"/>
+        </Style>
+        <Style Selector="Button.window-control.close:pointerover">
+            <Setter Property="Background" Value="#40FF5C5C"/>
+        </Style>
+    </Window.Styles>
+
+    <Grid RowDefinitions="42,*" Background="{StaticResource AppBgBrush}">
+        <!-- Title Bar -->
+        <Grid Grid.Row="0" Name="HeaderPanel" Background="{StaticResource GrayGradient}" PointerPressed="HeaderPanel_OnPointerPressed">
+            <Grid ColumnDefinitions="Auto,*,Auto" Margin="8,0">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center" Spacing="8">
+                    <Border Width="24" Height="24" Background="{StaticResource AccentPurpleBrush}" CornerRadius="4"/>
+                    <TextBlock Name="HeaderText" Text="Language / Мова" 
+                               FontSize="14" FontWeight="SemiBold"
+                               Foreground="{StaticResource AppTextBrush}" 
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+
+                <Panel Grid.Column="1" Background="Transparent" />
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="4">
+                    <!-- Window control buttons -->
+                    <Button Name="CloseButton" Classes="window-control close" Click="CloseButton_OnClick">
+                        <Image Source="avares://Insait%20Draw%20H/Icons/CloseButton.png" Width="32" Height="32"/>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Grid>
+
+        <!-- Content -->
+        <Border Grid.Row="1" Margin="12" Background="{StaticResource AppSurfaceBrush}"
+                BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="8">
+            <StackPanel Margin="16" VerticalAlignment="Center">
+                <TextBlock Name="SelectLanguageText" Text="Select Interface Language" 
+                           FontSize="14" FontWeight="SemiBold"
+                           Foreground="{StaticResource AppTextBrush}"
+                           HorizontalAlignment="Center"
+                           Margin="0,0,0,12"/>
+
+                <!-- Language ComboBox -->
+                <ComboBox Name="LanguageComboBox" 
+                          HorizontalAlignment="Center"
+                          Width="200"
+                          SelectionChanged="LanguageComboBox_SelectionChanged">
+                    <ComboBoxItem Tag="en">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="🇬🇧" FontSize="16" VerticalAlignment="Center"/>
+                            <TextBlock Text="English" FontSize="14" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </ComboBoxItem>
+                    <ComboBoxItem Tag="uk">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="🇺🇦" FontSize="16" VerticalAlignment="Center"/>
+                            <TextBlock Text="Українська" FontSize="14" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </ComboBoxItem>
+                    <ComboBoxItem Tag="de">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="🇩🇪" FontSize="16" VerticalAlignment="Center"/>
+                            <TextBlock Text="Deutsch" FontSize="14" VerticalAlignment="Center"/>
+                        </StackPanel>
+                    </ComboBoxItem>
+                </ComboBox>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

@@ -255,29 +255,6 @@ export function Toolbar() {
           </button>
         </div>
       </div>
-
-      {/* Snapping */}
-      <div className="tool-group">
-        <span className="group-label">{t('snapping')}</span>
-        <div className="snap-controls">
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={snapToGrid}
-              onChange={(e) => setSnapToGrid(e.target.checked)}
-            />
-            {t('toGrid')}
-          </label>
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={snapToObjects}
-              onChange={(e) => setSnapToObjects(e.target.checked)}
-            />
-            {t('toObjects')}
-          </label>
-        </div>
-      </div>
     </div>
   );
 }

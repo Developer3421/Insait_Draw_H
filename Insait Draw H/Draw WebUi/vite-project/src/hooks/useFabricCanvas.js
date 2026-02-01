@@ -34,7 +34,7 @@ export function useFabricCanvas(canvasRef, containerRef) {
         const canvas = new Canvas(canvasRef.current, {
           width,
           height,
-          backgroundColor: THEME_COLORS.pasteboard, // Grey pasteboard like CorelDRAW
+          backgroundColor: 'transparent', // Прозорий фон - сітка і pasteboard малюються на grid-canvas
           selection: true,
           preserveObjectStacking: true,
           enableRetinaScaling: true,

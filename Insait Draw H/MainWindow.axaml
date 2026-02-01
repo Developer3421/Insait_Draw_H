@@ -92,6 +92,18 @@
                 <Panel Grid.Column="1" Background="Transparent" />
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center" Spacing="4">
+                    <!-- Language Button -->
+                    <Button Name="LanguageButton" Classes="accent-button" Click="LanguageButton_OnClick" ToolTip.Tip="Language">
+                        <Border Width="28" Height="28" CornerRadius="6" Background="{StaticResource OrangePurpleGradient}">
+                            <Viewbox Width="18" Height="18">
+                                <Canvas Width="24" Height="24">
+                                    <!-- Globe icon -->
+                                    <Path Fill="White" Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                                </Canvas>
+                            </Viewbox>
+                        </Border>
+                    </Button>
+                    
                     <!-- Accent buttons -->
                     <Button Name="UserAgreementButton" Classes="accent-button" Click="UserAgreementButton_OnClick" ToolTip.Tip="User Agreement">
                         <Border Width="28" Height="28" CornerRadius="6" Background="{StaticResource OrangePurpleGradient}">
@@ -118,13 +130,13 @@
 
                     <!-- Window control buttons -->
                     <Button Name="MinimizeButton" Classes="window-control" Click="MinimizeButton_OnClick">
-                        <Image Source="avares://Insait%20Draw%20H/Icons/MinButton.png" Width="24" Height="24"/>
+                        <Image Source="avares://Insait%20Draw%20H/Icons/MinButton.png" Width="32" Height="32"/>
                     </Button>
                     <Button Name="MaximizeButton" Classes="window-control" Click="MaximizeButton_OnClick">
-                        <Image Source="avares://Insait%20Draw%20H/Icons/MaxButton.png" Width="24" Height="24"/>
+                        <Image Source="avares://Insait%20Draw%20H/Icons/MaxButton.png" Width="32" Height="32"/>
                     </Button>
                     <Button Name="CloseButton" Classes="window-control close" Click="CloseButton_OnClick">
-                        <Image Source="avares://Insait%20Draw%20H/Icons/CloseButton.png" Width="24" Height="24"/>
+                        <Image Source="avares://Insait%20Draw%20H/Icons/CloseButton.png" Width="32" Height="32"/>
                     </Button>
                 </StackPanel>
             </Grid>

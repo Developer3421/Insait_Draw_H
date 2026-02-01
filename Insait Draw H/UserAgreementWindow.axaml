@@ -35,10 +35,10 @@
                     </Viewbox>
                 </Border>
                 <StackPanel VerticalAlignment="Center" Spacing="4">
-                    <TextBlock Text="User Agreement" 
+                    <TextBlock Name="TitleText" Text="User Agreement" 
                                FontSize="24" FontWeight="Bold" 
                                Foreground="#FF303030"/>
-                    <TextBlock Text="Privacy and Terms of Use" 
+                    <TextBlock Name="SubtitleText" Text="Privacy and Terms of Use" 
                                FontSize="13" 
                                Foreground="#FF707070"/>
                 </StackPanel>
@@ -59,11 +59,11 @@
                                         <Path Fill="#FF4CAF50" Data="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
                                     </Canvas>
                                 </Viewbox>
-                                <TextBlock Text="Local Data Storage" 
+                                <TextBlock Name="LocalStorageTitle" Text="Local Data Storage" 
                                            FontSize="16" FontWeight="SemiBold"
                                            Foreground="#FF404040"/>
                             </StackPanel>
-                            <TextBlock TextWrapping="Wrap" FontSize="13" Foreground="#FF606060"
+                            <TextBlock Name="LocalStorageText" TextWrapping="Wrap" FontSize="13" Foreground="#FF606060"
                                        Text="All your data, including projects, settings, and preferences, are stored locally on your computer. No data is transmitted to external servers or cloud services. Your creative work remains completely under your control and on your device."/>
                         </StackPanel>
                     </Border>
@@ -77,11 +77,11 @@
                                         <Path Fill="#FFFF9800" Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
                                     </Canvas>
                                 </Viewbox>
-                                <TextBlock Text="Provided 'As Is'" 
+                                <TextBlock Name="AsIsTitle" Text="Provided 'As Is'" 
                                            FontSize="16" FontWeight="SemiBold"
                                            Foreground="#FF404040"/>
                             </StackPanel>
-                            <TextBlock TextWrapping="Wrap" FontSize="13" Foreground="#FF606060"
+                            <TextBlock Name="AsIsText" TextWrapping="Wrap" FontSize="13" Foreground="#FF606060"
                                        Text="This application is provided 'as is' without any warranties, express or implied. The author does not guarantee that the software will be error-free or uninterrupted. Use of this software is at your own risk."/>
                         </StackPanel>
                     </Border>
@@ -95,11 +95,11 @@
                                         <Path Fill="#FF9B59B6" Data="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
                                     </Canvas>
                                 </Viewbox>
-                                <TextBlock Text="Acceptance of Terms" 
+                                <TextBlock Name="AcceptanceTitle" Text="Acceptance of Terms" 
                                            FontSize="16" FontWeight="SemiBold"
                                            Foreground="#FF404040"/>
                             </StackPanel>
-                            <TextBlock TextWrapping="Wrap" FontSize="13" Foreground="#FF606060"
+                            <TextBlock Name="AcceptanceText" TextWrapping="Wrap" FontSize="13" Foreground="#FF606060"
                                        Text="By using Insait Draw H, you acknowledge that you have read and understood these terms. The author shall not be liable for any direct, indirect, incidental, or consequential damages arising from the use of this software."/>
                         </StackPanel>
                     </Border>
@@ -111,12 +111,12 @@
 
             <!-- Footer -->
             <StackPanel Spacing="12" HorizontalAlignment="Center">
-                <TextBlock Text="© 2026 Oleh Kurylo. All rights reserved." 
+                <TextBlock Name="CopyrightText" Text="© 2026 Oleh Kurylo. All rights reserved." 
                            FontSize="11" 
                            Foreground="#FF909090"
                            HorizontalAlignment="Center"/>
                 
-                <Button Content="I Understand" 
+                <Button Name="CloseButton" Content="I Understand" 
                         HorizontalAlignment="Center"
                         Padding="40,12"
                         FontSize="14"

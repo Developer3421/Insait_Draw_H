@@ -42,31 +42,33 @@ export function useArtboard() {
     const left = (canvasWidth - width) / 2;
     const top = (canvasHeight - height) / 2;
     
-    // Create shadow rectangle (under the page)
+    // Create shadow rectangle (under the page) - make it invisible
     const shadowRect = new Rect({
       left: left + PAGE_SHADOW_OFFSET,
       top: top + PAGE_SHADOW_OFFSET,
       width: width,
       height: height,
-      fill: THEME_COLORS.pageShadow,
+      fill: 'transparent',
       selectable: false,
       evented: false,
       excludeFromExport: true,
+      visible: false,
       data: { type: 'page-shadow', isPageElement: true },
     });
     
-    // Create page rectangle
+    // Create page rectangle - invisible, used only for bounds
     const pageRect = new Rect({
       left: left,
       top: top,
       width: width,
       height: height,
-      fill: THEME_COLORS.page,
-      stroke: '#CCCCCC',
-      strokeWidth: 1,
+      fill: 'transparent',
+      stroke: 'transparent',
+      strokeWidth: 0,
       selectable: false,
       evented: false,
       excludeFromExport: true,
+      visible: false,
       data: { type: 'page', isPageElement: true },
     });
     

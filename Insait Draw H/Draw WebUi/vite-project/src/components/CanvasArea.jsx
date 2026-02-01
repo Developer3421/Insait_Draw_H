@@ -17,7 +17,7 @@ export function CanvasArea() {
   const zoom = useEditorStore((state) => state.zoom);
   const pageSettings = useEditorStore((state) => state.pageSettings);
   
-  // Grid drawing function - draws grid only within the page bounds
+  // Grid drawing function - draws grid on entire workspace, page is white without grid
   const drawGrid = useCallback((forceRedraw = false) => {
     const gridCanvas = gridCanvasRef.current;
     const container = containerRef.current;
@@ -47,9 +47,12 @@ export function CanvasArea() {
     const ctx = gridCanvas.getContext('2d');
     ctx.clearRect(0, 0, width, height);
     
+    // Fill with soft orange workspace background
+    ctx.fillStyle = '#FFE4C4';
+    ctx.fillRect(0, 0, width, height);
+    
     // Get page bounds and viewport transform
     const pageBounds = getPageBounds();
-    if (!pageBounds) return;
     
     // Get viewport transform from canvas (for pan/zoom)
     let vpt = [1, 0, 0, 1, 0, 0];
@@ -59,82 +62,65 @@ export function CanvasArea() {
       currentZoom = canvas.getZoom() || zoom;
     }
     
+    const scaledGridSize = Math.max(gridSize * currentZoom, 5); // Min 5px
+    
+    // Draw grid on entire workspace
+    ctx.strokeStyle = 'rgba(180, 140, 100, 0.3)';
+    ctx.lineWidth = 1;
+    
+    // Vertical lines
+    for (let x = 0; x <= width; x += scaledGridSize) {
+      ctx.beginPath();
+      ctx.moveTo(Math.floor(x) + 0.5, 0);
+      ctx.lineTo(Math.floor(x) + 0.5, height);
+      ctx.stroke();
+    }
+    
+    // Horizontal lines
+    for (let y = 0; y <= height; y += scaledGridSize) {
+      ctx.beginPath();
+      ctx.moveTo(0, Math.floor(y) + 0.5);
+      ctx.lineTo(width, Math.floor(y) + 0.5);
+      ctx.stroke();
+    }
+    
+    // If no page bounds, just draw the grid
+    if (!pageBounds) return;
+    
     // Calculate page position on screen considering viewport transform
     const pageLeft = pageBounds.left * currentZoom + vpt[4];
     const pageTop = pageBounds.top * currentZoom + vpt[5];
     const pageWidth = pageBounds.width * currentZoom;
     const pageHeight = pageBounds.height * currentZoom;
     
-    // Only draw grid if page is visible
-    if (pageLeft > width || pageTop > height || 
-        pageLeft + pageWidth < 0 || pageTop + pageHeight < 0) {
-      return;
-    }
-    
-    // Clip to page bounds
+    // Draw shadow first (slightly offset)
+    const shadowOffset = 6;
+    const shadowBlur = 12;
     ctx.save();
-    ctx.beginPath();
-    ctx.rect(
-      Math.max(0, pageLeft),
-      Math.max(0, pageTop),
-      Math.min(pageWidth, width - pageLeft),
-      Math.min(pageHeight, height - pageTop)
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
+    ctx.shadowBlur = shadowBlur;
+    ctx.shadowOffsetX = shadowOffset;
+    ctx.shadowOffsetY = shadowOffset;
+    
+    // Draw white page background with shadow
+    ctx.fillStyle = 'white';
+    ctx.fillRect(
+      Math.floor(pageLeft),
+      Math.floor(pageTop),
+      Math.floor(pageWidth),
+      Math.floor(pageHeight)
     );
-    ctx.clip();
-    
-    const scaledGridSize = Math.max(gridSize * currentZoom, 5); // Min 5px
-    
-    // Calculate grid start positions (aligned to page, not canvas)
-    const gridStartX = pageLeft;
-    const gridStartY = pageTop;
-    
-    // Draw minor grid lines - subtle gray on white background
-    ctx.strokeStyle = 'rgba(200, 200, 200, 0.6)';
-    ctx.lineWidth = 1;
-    
-    // Vertical lines
-    for (let x = gridStartX; x <= pageLeft + pageWidth && x <= width; x += scaledGridSize) {
-      if (x >= 0) {
-        ctx.beginPath();
-        ctx.moveTo(Math.floor(x) + 0.5, Math.max(0, pageTop));
-        ctx.lineTo(Math.floor(x) + 0.5, Math.min(height, pageTop + pageHeight));
-        ctx.stroke();
-      }
-    }
-    
-    // Horizontal lines
-    for (let y = gridStartY; y <= pageTop + pageHeight && y <= height; y += scaledGridSize) {
-      if (y >= 0) {
-        ctx.beginPath();
-        ctx.moveTo(Math.max(0, pageLeft), Math.floor(y) + 0.5);
-        ctx.lineTo(Math.min(width, pageLeft + pageWidth), Math.floor(y) + 0.5);
-        ctx.stroke();
-      }
-    }
-    
-    // Draw major grid lines (every 5 cells) - darker
-    ctx.strokeStyle = 'rgba(150, 150, 150, 0.7)';
-    ctx.lineWidth = 1;
-    
-    for (let x = gridStartX; x <= pageLeft + pageWidth && x <= width; x += scaledGridSize * 5) {
-      if (x >= 0) {
-        ctx.beginPath();
-        ctx.moveTo(Math.floor(x) + 0.5, Math.max(0, pageTop));
-        ctx.lineTo(Math.floor(x) + 0.5, Math.min(height, pageTop + pageHeight));
-        ctx.stroke();
-      }
-    }
-    
-    for (let y = gridStartY; y <= pageTop + pageHeight && y <= height; y += scaledGridSize * 5) {
-      if (y >= 0) {
-        ctx.beginPath();
-        ctx.moveTo(Math.max(0, pageLeft), Math.floor(y) + 0.5);
-        ctx.lineTo(Math.min(width, pageLeft + pageWidth), Math.floor(y) + 0.5);
-        ctx.stroke();
-      }
-    }
-    
     ctx.restore();
+    
+    // Draw page border (on top of shadow)
+    ctx.strokeStyle = 'rgba(80, 80, 80, 0.4)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(
+      Math.floor(pageLeft) + 0.5,
+      Math.floor(pageTop) + 0.5,
+      Math.floor(pageWidth),
+      Math.floor(pageHeight)
+    );
   }, [gridSize, zoom, getPageBounds]);
   
   // Initialize canvas after mount
