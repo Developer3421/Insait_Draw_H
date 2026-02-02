@@ -2,8 +2,17 @@ import { useCallback, useEffect, useRef } from 'react';
 import * as fabric from 'fabric';
 import { useEditorStore, TOOLS } from '../stores/editorStore';
 import { useLanguageStore } from '../stores/languageStore';
+import { 
+  parsePathPoints, 
+  createPathEditHandles, 
+  updatePathPoint, 
+  createSmoothPath,
+  createBezierPath,
+  HANDLE_COLORS,
+  HANDLE_SIZES 
+} from '../utils/pathEditor';
 
-const { Canvas, Rect, Circle, Triangle, Line, IText, PencilBrush, Path } = fabric;
+const { Canvas, Rect, Circle, Triangle, Line, IText, PencilBrush, Path, Point, util } = fabric;
 
 export function useFabricCanvas(canvasRef, containerRef) {
   const fabricCanvasRef = useRef(null);
@@ -20,6 +29,8 @@ export function useFabricCanvas(canvasRef, containerRef) {
   const pathPoints = useRef([]);
   const currentPath = useRef(null);
   const controlHandles = useRef([]);
+  const draggedControlHandle = useRef(null);
+  const lastAnchorIndex = useRef(-1);
   
   // Path editing refs (for DIRECT_SELECT and ANCHOR_POINT tools)
   const editingPath = useRef(null);
@@ -40,18 +51,16 @@ export function useFabricCanvas(canvasRef, containerRef) {
     controlHandles.current.forEach(handle => canvas.remove(handle));
     controlHandles.current = [];
     
-    // Генеруємо SVG шлях
-    let pathData = '';
     const points = pathPoints.current;
     
     if (points.length === 1) {
-      // Одна точка - показуємо маленьке коло
+      // Одна точка - показуємо маленьке коло (anchor point style)
       const p = points[0];
       const handle = new Circle({
-        left: p.x - 5,
-        top: p.y - 5,
-        radius: 5,
-        fill: '#4a90d9',
+        left: p.x,
+        top: p.y,
+        radius: HANDLE_SIZES.anchorRadius || 5,
+        fill: HANDLE_COLORS.anchor || '#1E90FF',
         stroke: '#ffffff',
         strokeWidth: 2,
         selectable: false,
@@ -59,32 +68,23 @@ export function useFabricCanvas(canvasRef, containerRef) {
         originX: 'center',
         originY: 'center',
       });
-      handle.set({ left: p.x, top: p.y });
       canvas.add(handle);
       controlHandles.current.push(handle);
       canvas.renderAll();
       return;
     }
     
-    if (smooth) {
-      // Плавна крива (curvature tool)
-      pathData = `M ${points[0].x} ${points[0].y}`;
-      
-      for (let i = 1; i < points.length; i++) {
-        const prev = points[i - 1];
-        const curr = points[i];
-        
-        if (i === 1) {
-          pathData += ` L ${curr.x} ${curr.y}`;
-        } else {
-          // Використовуємо квадратичну криву з попередньою точкою як контрольною
-          const cpX = prev.x;
-          const cpY = prev.y;
-          pathData += ` Q ${cpX} ${cpY} ${curr.x} ${curr.y}`;
-        }
-      }
+    // Генеруємо SVG шлях
+    let pathData = '';
+    
+    if (smooth && points.length > 2) {
+      // Use Catmull-Rom to Bezier conversion for smooth curves
+      pathData = createSmoothPath(points, false);
+    } else if (points.some(p => p.controlOut || p.controlIn)) {
+      // If points have control handles, use them for cubic bezier
+      pathData = createBezierPath(points);
     } else {
-      // Прямі лінії (pen tool - базова версія)
+      // Default: straight lines
       pathData = `M ${points[0].x} ${points[0].y}`;
       for (let i = 1; i < points.length; i++) {
         pathData += ` L ${points[i].x} ${points[i].y}`;
@@ -103,14 +103,17 @@ export function useFabricCanvas(canvasRef, containerRef) {
       canvas.add(path);
       currentPath.current = path;
       
-      // Додаємо контрольні точки для кожної вершини
+      // Додаємо контрольні точки та лінії для кожної вершини
       points.forEach((p, i) => {
         const isLast = i === points.length - 1;
-        const handle = new Circle({
+        const isFirst = i === 0;
+        
+        // Anchor point
+        const anchorHandle = new Circle({
           left: p.x,
           top: p.y,
-          radius: 5,
-          fill: isLast ? '#ff6b00' : '#4a90d9',
+          radius: HANDLE_SIZES.anchorRadius || 5,
+          fill: isLast ? (HANDLE_COLORS.anchorSelected || '#FF4500') : (HANDLE_COLORS.anchor || '#1E90FF'),
           stroke: '#ffffff',
           strokeWidth: 2,
           selectable: false,
@@ -118,8 +121,73 @@ export function useFabricCanvas(canvasRef, containerRef) {
           originX: 'center',
           originY: 'center',
         });
-        canvas.add(handle);
-        controlHandles.current.push(handle);
+        canvas.add(anchorHandle);
+        controlHandles.current.push(anchorHandle);
+        
+        // Draw control handles if they exist
+        if (p.controlOut) {
+          // Control line
+          const controlLine = new Line(
+            [p.x, p.y, p.controlOut.x, p.controlOut.y],
+            {
+              stroke: HANDLE_COLORS.controlLine || 'rgba(138, 43, 226, 0.5)',
+              strokeWidth: 1,
+              strokeDashArray: [4, 4],
+              selectable: false,
+              evented: false,
+            }
+          );
+          canvas.add(controlLine);
+          controlHandles.current.push(controlLine);
+          
+          // Control point
+          const controlHandle = new Circle({
+            left: p.controlOut.x,
+            top: p.controlOut.y,
+            radius: HANDLE_SIZES.controlRadius || 4,
+            fill: HANDLE_COLORS.controlPoint || '#8A2BE2',
+            stroke: '#ffffff',
+            strokeWidth: 1.5,
+            selectable: false,
+            evented: false,
+            originX: 'center',
+            originY: 'center',
+          });
+          canvas.add(controlHandle);
+          controlHandles.current.push(controlHandle);
+        }
+        
+        if (p.controlIn && !isFirst) {
+          // Control line
+          const controlLine = new Line(
+            [p.x, p.y, p.controlIn.x, p.controlIn.y],
+            {
+              stroke: HANDLE_COLORS.controlLine || 'rgba(138, 43, 226, 0.5)',
+              strokeWidth: 1,
+              strokeDashArray: [4, 4],
+              selectable: false,
+              evented: false,
+            }
+          );
+          canvas.add(controlLine);
+          controlHandles.current.push(controlLine);
+          
+          // Control point
+          const controlHandle = new Circle({
+            left: p.controlIn.x,
+            top: p.controlIn.y,
+            radius: HANDLE_SIZES.controlRadius || 4,
+            fill: HANDLE_COLORS.controlPoint || '#8A2BE2',
+            stroke: '#ffffff',
+            strokeWidth: 1.5,
+            selectable: false,
+            evented: false,
+            originX: 'center',
+            originY: 'center',
+          });
+          canvas.add(controlHandle);
+          controlHandles.current.push(controlHandle);
+        }
       });
       
       canvas.renderAll();
@@ -140,6 +208,8 @@ export function useFabricCanvas(canvasRef, containerRef) {
       controlHandles.current = [];
       pathPoints.current = [];
       isDrawingPath.current = false;
+      draggedControlHandle.current = null;
+      lastAnchorIndex.current = -1;
       canvas?.renderAll();
       return;
     }
@@ -153,26 +223,33 @@ export function useFabricCanvas(canvasRef, containerRef) {
     controlHandles.current.forEach(handle => canvas.remove(handle));
     controlHandles.current = [];
     
-    // Створюємо фінальний шлях
-    let pathData = `M ${pathPoints.current[0].x} ${pathPoints.current[0].y}`;
     const points = pathPoints.current;
     
+    // Check if we have control handles (bezier curves)
+    const hasBezierHandles = points.some(p => p.controlOut || p.controlIn);
     const isSmooth = points.some(p => p.type === 'smooth');
     
-    if (isSmooth && points.length > 2) {
+    // Create path data
+    let pathData = `M ${points[0].x} ${points[0].y}`;
+    
+    if (hasBezierHandles) {
+      // Create cubic bezier path using control handles
       for (let i = 1; i < points.length; i++) {
         const prev = points[i - 1];
         const curr = points[i];
         
-        if (i === 1) {
-          pathData += ` L ${curr.x} ${curr.y}`;
-        } else {
-          const cpX = prev.x;
-          const cpY = prev.y;
-          pathData += ` Q ${cpX} ${cpY} ${curr.x} ${curr.y}`;
-        }
+        // Get control points
+        const cp1 = prev.controlOut || { x: prev.x, y: prev.y };
+        const cp2 = curr.controlIn || { x: curr.x, y: curr.y };
+        
+        // Create cubic bezier curve
+        pathData += ` C ${cp1.x} ${cp1.y} ${cp2.x} ${cp2.y} ${curr.x} ${curr.y}`;
       }
+    } else if (isSmooth && points.length > 2) {
+      // Create smooth path using Catmull-Rom spline conversion
+      pathData = createSmoothPath(points, false);
     } else {
+      // Create straight line segments
       for (let i = 1; i < points.length; i++) {
         pathData += ` L ${points[i].x} ${points[i].y}`;
       }
@@ -195,12 +272,13 @@ export function useFabricCanvas(canvasRef, containerRef) {
       
       // Встановлюємо властивості для розпізнавання в LayersPanel
       finalPath.type = 'path';
-      finalPath.name = isSmooth ? 'Curve' : 'Path';
+      finalPath.name = hasBezierHandles ? 'Bezier Curve' : (isSmooth ? 'Smooth Curve' : 'Path');
       
       // Зберігаємо оригінальні точки для можливості редагування
       finalPath.customData = {
         type: 'bezierPath',
         originalPoints: [...points],
+        hasBezierHandles,
       };
       
       canvas.add(finalPath);
@@ -215,6 +293,8 @@ export function useFabricCanvas(canvasRef, containerRef) {
     pathPoints.current = [];
     currentPath.current = null;
     isDrawingPath.current = false;
+    draggedControlHandle.current = null;
+    lastAnchorIndex.current = -1;
   }, []);
 
   // Функція для входу в режим редагування шляху
@@ -228,90 +308,46 @@ export function useFabricCanvas(canvasRef, containerRef) {
     
     editingPath.current = pathObject;
     
-    // Парсимо path data для отримання точок
-    const pathData = pathObject.path;
-    if (!pathData || !Array.isArray(pathData)) return;
+    // Use professional path editor from utility
+    const { handles, controlLines, cleanup } = createPathEditHandles(canvas, pathObject);
     
-    // Видаляємо старі handles
-    editingPathHandles.current.forEach(h => canvas.remove(h));
-    editingPathHandles.current = [];
+    // Store all handles for later cleanup
+    editingPathHandles.current = [...handles, ...(controlLines || [])];
+    editingPath.current._cleanupEditMode = cleanup;
     
-    // Отримуємо трансформацію шляху
-    const matrix = pathObject.calcTransformMatrix();
-    
-    // Створюємо handles для кожної точки
-    let pointIndex = 0;
-    pathData.forEach((cmd, cmdIndex) => {
-      if (!cmd || cmd.length === 0) return;
-      
-      const type = cmd[0];
-      let x, y;
-      
-      // Визначаємо координати залежно від типу команди
-      if (type === 'M' || type === 'L') {
-        x = cmd[1];
-        y = cmd[2];
-      } else if (type === 'Q') {
-        // Quadratic bezier - показуємо тільки endpoint
-        x = cmd[3];
-        y = cmd[4];
-      } else if (type === 'C') {
-        // Cubic bezier - показуємо тільки endpoint
-        x = cmd[5];
-        y = cmd[6];
-      } else if (type === 'Z' || type === 'z') {
-        return; // Close path - пропускаємо
-      } else {
-        return;
-      }
-      
-      // Трансформуємо координати в canvas координати
-      const transformed = fabric.util.transformPoint(
-        new fabric.Point(x, y),
-        matrix
-      );
-      
-      const handle = new Circle({
-        left: transformed.x,
-        top: transformed.y,
-        radius: 6,
-        fill: '#4a90d9',
-        stroke: '#ffffff',
-        strokeWidth: 2,
-        selectable: true,
-        evented: true,
-        originX: 'center',
-        originY: 'center',
-        hasControls: false,
-        hasBorders: false,
-        lockScalingX: true,
-        lockScalingY: true,
-        hoverCursor: 'pointer',
-        moveCursor: 'move',
+    // Setup handle events for interactive editing
+    handles.forEach(handle => {
+      // Hover effects
+      handle.on('mouseover', () => {
+        if (handle.pointData && handle.pointData.handleType === 'anchor') {
+          handle.set({ fill: HANDLE_COLORS.hoverAnchor || '#FFD700' });
+        }
+        canvas.renderAll();
       });
       
-      // Зберігаємо інфо про handle
-      handle.anchorData = {
-        pathObject: pathObject,
-        cmdIndex: cmdIndex,
-        pointIndex: pointIndex,
-        type: type,
-      };
+      handle.on('mouseout', () => {
+        if (handle.pointData && handle.pointData.handleType === 'anchor') {
+          const isSelected = selectedAnchorIndex.current === handle.pointData.index;
+          handle.set({ 
+            fill: isSelected ? (HANDLE_COLORS.anchorSelected || '#FF4500') : (HANDLE_COLORS.anchor || '#1E90FF')
+          });
+        }
+        canvas.renderAll();
+      });
       
-      canvas.add(handle);
-      editingPathHandles.current.push(handle);
-      pointIndex++;
-    });
-    
-    // Виділяємо шлях але забороняємо трансформації
-    pathObject.set({
-      hasControls: false,
-      hasBorders: true,
-      selectable: true,
-      lockMovementX: true,
-      lockMovementY: true,
-      borderColor: '#4a90d9',
-      borderDashArray: [5, 5],
+      // Update path when handle is moved
+      handle.on('moving', () => {
+        if (handle.pointData) {
+          updatePathPoint(handle, canvas);
+        }
+      });
+      
+      // Save history when move is complete
+      handle.on('moved', () => {
+        if (handle.pointData) {
+          updatePathPoint(handle, canvas);
+        }
+      });
     });
     
     canvas.renderAll();
@@ -321,22 +357,16 @@ export function useFabricCanvas(canvasRef, containerRef) {
   const exitPathEditMode = useCallback((canvas) => {
     if (!canvas) return;
     
-    // Видаляємо handles
-    editingPathHandles.current.forEach(h => canvas.remove(h));
-    editingPathHandles.current = [];
-    
-    // Повертаємо властивості шляху
-    if (editingPath.current) {
-      editingPath.current.set({
-        hasControls: true,
-        hasBorders: true,
-        lockMovementX: false,
-        lockMovementY: false,
-        borderColor: undefined,
-        borderDashArray: undefined,
-      });
+    // Use cleanup function from path editor if available
+    if (editingPath.current && editingPath.current._cleanupEditMode) {
+      editingPath.current._cleanupEditMode();
+      editingPath.current._cleanupEditMode = null;
+    } else {
+      // Fallback: manually remove handles
+      editingPathHandles.current.forEach(h => canvas.remove(h));
     }
     
+    editingPathHandles.current = [];
     editingPath.current = null;
     selectedAnchorIndex.current = null;
     isDraggingAnchor.current = false;
@@ -353,13 +383,10 @@ export function useFabricCanvas(canvasRef, containerRef) {
     
     // Отримуємо інверсну матрицю для перетворення з canvas в path координати
     const matrix = pathObject.calcTransformMatrix();
-    const invMatrix = fabric.util.invertTransform(matrix);
+    const invMatrix = util.invertTransform(matrix);
     
     // Перетворюємо позицію handle назад у path координати
-    const localPoint = fabric.util.transformPoint(
-      new fabric.Point(handle.left, handle.top),
-      invMatrix
-    );
+    const localPoint = new Point(handle.left, handle.top).transform(invMatrix);
     
     // Оновлюємо координати в path data
     const cmd = pathObject.path[cmdIndex];
@@ -376,9 +403,9 @@ export function useFabricCanvas(canvasRef, containerRef) {
       cmd[6] = localPoint.y;
     }
     
-    // Оновлюємо path
+    // Оновлюємо path - use setCoords() instead of deprecated _setPositionDimensions
     pathObject.set({ dirty: true });
-    pathObject._setPositionDimensions({});
+    pathObject.setCoords();
     canvas.renderAll();
   }, []);
 
@@ -526,20 +553,36 @@ export function useFabricCanvas(canvasRef, containerRef) {
         };
       }
       
-      // PEN tool - Bezier curves
+      // PEN tool - Bezier curves (with drag support for control handles)
       if (activeTool === TOOLS.PEN) {
         const { strokeColor, strokeWidth } = useEditorStore.getState();
         const pointer = getPointerPosition(opt, canvas);
         const x = snapValue(pointer.x);
         const y = snapValue(pointer.y);
         
-        // Додаємо нову точку
-        pathPoints.current.push({ x, y, type: 'point' });
+        // Add new anchor point
+        const newPoint = { 
+          x, 
+          y, 
+          type: 'point',
+          controlIn: null,  // Incoming control handle
+          controlOut: null  // Outgoing control handle  
+        };
         
-        // Створюємо або оновлюємо шлях
+        pathPoints.current.push(newPoint);
+        lastAnchorIndex.current = pathPoints.current.length - 1;
+        
+        // Mark that we're starting to drag (for creating control handles)
+        draggedControlHandle.current = {
+          anchorIndex: lastAnchorIndex.current,
+          startX: x,
+          startY: y
+        };
+        
+        // Update path preview
         updatePathPreview(canvas, strokeColor, strokeWidth);
         
-        // Відмічаємо що малюємо шлях
+        // Mark that we're drawing a path
         isDrawingPath.current = true;
         
         return;
@@ -626,6 +669,38 @@ export function useFabricCanvas(canvasRef, containerRef) {
         lastPosX.current = clientX;
         lastPosY.current = clientY;
         canvas.requestRenderAll();
+        return;
+      }
+      
+      // PEN tool - drag to create bezier control handles
+      if (activeTool === TOOLS.PEN && draggedControlHandle.current && isDrawingPath.current) {
+        const pointer = getPointerPosition(opt, canvas);
+        const x = snapValue(pointer.x);
+        const y = snapValue(pointer.y);
+        const anchorIndex = draggedControlHandle.current.anchorIndex;
+        const anchor = pathPoints.current[anchorIndex];
+        
+        if (anchor) {
+          // Calculate distance from anchor
+          const dx = x - anchor.x;
+          const dy = y - anchor.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          
+          // Only create handles if dragged at least a minimum distance
+          if (distance > 5) {
+            // Set outgoing control handle (in direction of drag)
+            anchor.controlOut = { x, y };
+            
+            // Set incoming control handle (mirrored/opposite direction)
+            anchor.controlIn = { 
+              x: anchor.x - dx, 
+              y: anchor.y - dy 
+            };
+            
+            // Update preview
+            updatePathPreview(canvas, strokeColor, strokeWidth);
+          }
+        }
         return;
       }
       
@@ -725,6 +800,12 @@ export function useFabricCanvas(canvasRef, containerRef) {
         isPanning.current = false;
         canvas.selection = activeTool === TOOLS.SELECT;
         canvas.setCursor(activeTool === TOOLS.PAN ? 'grab' : 'default');
+        return;
+      }
+      
+      // PEN tool - stop dragging control handle
+      if (activeTool === TOOLS.PEN && draggedControlHandle.current) {
+        draggedControlHandle.current = null;
         return;
       }
       
@@ -892,6 +973,8 @@ export function useFabricCanvas(canvasRef, containerRef) {
       controlHandles.current = [];
       pathPoints.current = [];
       isDrawingPath.current = false;
+      draggedControlHandle.current = null;
+      lastAnchorIndex.current = -1;
       canvas.renderAll();
     };
     

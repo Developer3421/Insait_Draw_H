@@ -144,7 +144,50 @@
 
         <Border Grid.Row="1" Margin="8" Background="{StaticResource AppSurfaceBrush}"
                 BorderBrush="{StaticResource AppBorderBrush}" BorderThickness="1" CornerRadius="12">
-            <ContentControl Name="WebViewHost" />
+            <Grid>
+                <!-- Loading Screen -->
+                <Border Name="LoadingScreen" Background="{StaticResource AppSurfaceBrush}" 
+                        IsVisible="True" ZIndex="100">
+                    <Grid RowDefinitions="*,Auto,Auto,Auto,*">
+                        <!-- Logo and Title -->
+                        <StackPanel Grid.Row="1" HorizontalAlignment="Center" Spacing="20">
+                            <Image Source="avares://Insait%20Draw%20H/Icons/AppIcon2.png" Width="96" Height="96" 
+                                   HorizontalAlignment="Center"/>
+                            <TextBlock Name="LoadingTitleText" Text="Insait Draw H" 
+                                       FontSize="32" FontWeight="Bold" HorizontalAlignment="Center"
+                                       Foreground="{StaticResource AccentPurpleBrush}"/>
+                        </StackPanel>
+                        
+                        <!-- Loading Animation -->
+                        <StackPanel Grid.Row="2" HorizontalAlignment="Center" Spacing="16" Margin="0,40,0,0">
+                            <Border Width="200" Height="4" Background="#20000000" CornerRadius="2">
+                                <Border Name="LoadingProgressBar" Width="0" Height="4" 
+                                        Background="{StaticResource OrangePurpleGradient}" 
+                                        CornerRadius="2" HorizontalAlignment="Left"/>
+                            </Border>
+                            <TextBlock Name="LoadingStatusText" Text="Loading editor..." 
+                                       FontSize="14" HorizontalAlignment="Center"
+                                       Foreground="{StaticResource AppTextMutedBrush}"/>
+                        </StackPanel>
+                        
+                        <!-- Feature Highlights -->
+                        <StackPanel Grid.Row="3" HorizontalAlignment="Center" Spacing="8" Margin="0,40,0,0">
+                            <TextBlock Name="LoadingFeature1" Text="✓ Professional vector graphics editing"
+                                       FontSize="12" HorizontalAlignment="Center"
+                                       Foreground="{StaticResource AppTextMutedBrush}" Opacity="0.7"/>
+                            <TextBlock Name="LoadingFeature2" Text="✓ Bezier curves and path tools"
+                                       FontSize="12" HorizontalAlignment="Center"
+                                       Foreground="{StaticResource AppTextMutedBrush}" Opacity="0.7"/>
+                            <TextBlock Name="LoadingFeature3" Text="✓ Layers and object management"
+                                       FontSize="12" HorizontalAlignment="Center"
+                                       Foreground="{StaticResource AppTextMutedBrush}" Opacity="0.7"/>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+                
+                <!-- WebView Host -->
+                <ContentControl Name="WebViewHost" />
+            </Grid>
         </Border>
     </Grid>
 </Window>

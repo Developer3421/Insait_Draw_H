@@ -97,6 +97,14 @@ public static class LanguageManager
             "languageSelection" => "Language Selection",
             "selectInterfaceLanguage" => "Select Interface Language",
             
+            // Loading Screen
+            "loadingEditor" => "Loading editor...",
+            "loadingInitializing" => "Initializing workspace...",
+            "loadingAlmostReady" => "Almost ready...",
+            "loadingFeature1" => "✓ Professional vector graphics editing",
+            "loadingFeature2" => "✓ Bezier curves and path tools",
+            "loadingFeature3" => "✓ Layers and object management",
+            
             // About Window
             "aboutTitle" => "About Insait Draw H",
             "version" => "Version",
@@ -139,6 +147,14 @@ public static class LanguageManager
             "languageSelection" => "Вибір мови",
             "selectInterfaceLanguage" => "Виберіть мову інтерфейсу",
             
+            // Екран завантаження
+            "loadingEditor" => "Завантаження редактора...",
+            "loadingInitializing" => "Ініціалізація робочого простору...",
+            "loadingAlmostReady" => "Майже готово...",
+            "loadingFeature1" => "✓ Професійне редагування векторної графіки",
+            "loadingFeature2" => "✓ Криві Безьє та інструменти контурів",
+            "loadingFeature3" => "✓ Шари та керування об'єктами",
+            
             // Вікно "Про програму"
             "aboutTitle" => "Про Insait Draw H",
             "version" => "Версія",
@@ -180,6 +196,14 @@ public static class LanguageManager
             // Sprachauswahlfenster
             "languageSelection" => "Sprachauswahl",
             "selectInterfaceLanguage" => "Wählen Sie die Oberflächensprache",
+            
+            // Ladebildschirm
+            "loadingEditor" => "Editor wird geladen...",
+            "loadingInitializing" => "Arbeitsbereich wird initialisiert...",
+            "loadingAlmostReady" => "Fast fertig...",
+            "loadingFeature1" => "✓ Professionelle Vektorgrafik-Bearbeitung",
+            "loadingFeature2" => "✓ Bézierkurven und Pfadwerkzeuge",
+            "loadingFeature3" => "✓ Ebenen und Objektverwaltung",
             
             // Über-Fenster
             "aboutTitle" => "Über Insait Draw H",
