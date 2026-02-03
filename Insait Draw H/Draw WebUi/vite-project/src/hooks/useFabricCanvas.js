@@ -3,16 +3,17 @@ import * as fabric from 'fabric';
 import { useEditorStore, TOOLS } from '../stores/editorStore';
 import { useLanguageStore } from '../stores/languageStore';
 import { 
-  parsePathPoints, 
   createPathEditHandles, 
   updatePathPoint, 
   createSmoothPath,
   createBezierPath,
+  removeAnchorPoint,
   HANDLE_COLORS,
   HANDLE_SIZES 
 } from '../utils/pathEditor';
+import { cleanupGPUResources, optimizeObjectForGPU } from '../utils/fabricGpuConfig';
 
-const { Canvas, Rect, Circle, Triangle, Line, IText, PencilBrush, Path, Point, util } = fabric;
+const { Canvas, Rect, Circle, Triangle, Line, IText, PencilBrush, Path } = fabric;
 
 export function useFabricCanvas(canvasRef, containerRef) {
   const fabricCanvasRef = useRef(null);
@@ -75,7 +76,7 @@ export function useFabricCanvas(canvasRef, containerRef) {
     }
     
     // Генеруємо SVG шлях
-    let pathData = '';
+    let pathData;
     
     if (smooth && points.length > 2) {
       // Use Catmull-Rom to Bezier conversion for smooth curves
@@ -264,7 +265,10 @@ export function useFabricCanvas(canvasRef, containerRef) {
         evented: true,
         hasControls: true,
         hasBorders: true,
-        lockUniScaling: false,
+        // `lockUniScaling` was removed from Fabric.js (v4+). If you need to control scaling
+        // behavior, use the supported lockScalingX/lockScalingY flags and/or canvas.uniformScaling.
+        lockScalingX: false,
+        lockScalingY: false,
       });
       
       // Генеруємо унікальний ID
@@ -272,14 +276,13 @@ export function useFabricCanvas(canvasRef, containerRef) {
       
       // Встановлюємо властивості для розпізнавання в LayersPanel
       finalPath.type = 'path';
-      finalPath.name = hasBezierHandles ? 'Bezier Curve' : (isSmooth ? 'Smooth Curve' : 'Path');
-      
-      // Зберігаємо оригінальні точки для можливості редагування
+      // Give Bezier a distinct type marker used by Layers and potential future styling
       finalPath.customData = {
-        type: 'bezierPath',
+        type: hasBezierHandles ? 'bezier' : (isSmooth ? 'smooth' : 'path'),
         originalPoints: [...points],
         hasBezierHandles,
       };
+      finalPath.name = hasBezierHandles ? 'Bezier' : (isSmooth ? 'Smooth Curve' : 'Path');
       
       canvas.add(finalPath);
       addLayer(finalPath);
@@ -310,11 +313,21 @@ export function useFabricCanvas(canvasRef, containerRef) {
     
     // Use professional path editor from utility
     const { handles, controlLines, cleanup } = createPathEditHandles(canvas, pathObject);
-    
+
     // Store all handles for later cleanup
     editingPathHandles.current = [...handles, ...(controlLines || [])];
     editingPath.current._cleanupEditMode = cleanup;
-    
+
+    // Make sure handles are actually selectable in Fabric so clicking sets active object
+    // (we still exclude them from export and from normal Delete behavior for real artwork).
+    handles.forEach(h => {
+      try {
+        h.set({ selectable: true, evented: true });
+      } catch {
+        // ignore
+      }
+    });
+
     // Setup handle events for interactive editing
     handles.forEach(handle => {
       // Hover effects
@@ -374,41 +387,6 @@ export function useFabricCanvas(canvasRef, containerRef) {
     canvas.renderAll();
   }, []);
 
-  // Функція для оновлення позиції anchor точки
-  const updateAnchorPosition = useCallback((handle, canvas) => {
-    if (!handle || !handle.anchorData || !canvas) return;
-    
-    const { pathObject, cmdIndex, type } = handle.anchorData;
-    if (!pathObject || !pathObject.path) return;
-    
-    // Отримуємо інверсну матрицю для перетворення з canvas в path координати
-    const matrix = pathObject.calcTransformMatrix();
-    const invMatrix = util.invertTransform(matrix);
-    
-    // Перетворюємо позицію handle назад у path координати
-    const localPoint = new Point(handle.left, handle.top).transform(invMatrix);
-    
-    // Оновлюємо координати в path data
-    const cmd = pathObject.path[cmdIndex];
-    if (!cmd) return;
-    
-    if (type === 'M' || type === 'L') {
-      cmd[1] = localPoint.x;
-      cmd[2] = localPoint.y;
-    } else if (type === 'Q') {
-      cmd[3] = localPoint.x;
-      cmd[4] = localPoint.y;
-    } else if (type === 'C') {
-      cmd[5] = localPoint.x;
-      cmd[6] = localPoint.y;
-    }
-    
-    // Оновлюємо path - use setCoords() instead of deprecated _setPositionDimensions
-    pathObject.set({ dirty: true });
-    pathObject.setCoords();
-    canvas.renderAll();
-  }, []);
-
   // Ініціалізація канвасу
   const initCanvas = useCallback(() => {
     if (!canvasRef.current || isInitialized.current) return;
@@ -435,6 +413,10 @@ export function useFabricCanvas(canvasRef, containerRef) {
           allowTouchScrolling: false,
           stopContextMenu: true,
           fireRightClick: true,
+          // GPU optimization settings
+          renderOnAddRemove: true, // Will be temporarily disabled during batch operations
+          skipOffscreen: true, // Skip rendering off-screen objects
+          imageSmoothingEnabled: true,
         });
         
         // Встановлюємо пензель
@@ -453,6 +435,8 @@ export function useFabricCanvas(canvasRef, containerRef) {
         
         // Trigger render
         canvas.renderAll();
+        
+        console.log('[FabricCanvas] Canvas initialized with GPU optimizations');
       } catch (error) {
         console.error('Error initializing fabric canvas:', error);
       }
@@ -463,6 +447,43 @@ export function useFabricCanvas(canvasRef, containerRef) {
   const setupCanvasEvents = useCallback((canvas) => {
     if (!canvas) return;
     
+    // Helper: find nearest edit handle when user clicks near it
+    const findNearestEditHandle = (cvs, opt) => {
+      if (!cvs || !editingPath.current || !editingPathHandles.current?.length) return null;
+
+      let p = opt?.scenePoint || opt?.pointer;
+      if (!p) {
+        try {
+          p = cvs.getPointer(opt.e);
+        } catch {
+          p = null;
+        }
+      }
+      if (!p) return null;
+
+      const tol = HANDLE_SIZES.hitTolerance || 8;
+      let best = null;
+      let bestD2 = tol * tol;
+
+      for (const h of editingPathHandles.current) {
+        if (!h || !h.pointData) continue;
+        if (h.type === 'line') continue;
+
+        const dx = (h.left ?? 0) - p.x;
+        const dy = (h.top ?? 0) - p.y;
+        const d2 = dx * dx + dy * dy;
+
+        if (d2 <= bestD2) {
+          if (!best || d2 < bestD2 || (best?.pointData?.handleType !== 'anchor' && h.pointData.handleType === 'anchor')) {
+            best = h;
+            bestD2 = d2;
+          }
+        }
+      }
+
+      return best;
+    };
+
     // Функція для отримання позиції миші (сумісна з v7)
     const getPointerPosition = (opt, canvas) => {
       // opt містить e (Event) та pointer/scenePoint
@@ -518,11 +539,55 @@ export function useFabricCanvas(canvasRef, containerRef) {
     // Mouse down
     canvas.on('mouse:down', (opt) => {
       const { activeTool, snapToGrid, gridSize } = useEditorStore.getState();
-      
       const snapValue = (val) => snapToGrid ? Math.round(val / gridSize) * gridSize : val;
-      
+
+      // If we're currently editing a path, allow selecting its edit handles
+      // (anchor/control points) by simple click regardless of the active tool.
+      // This enables: click point -> press Delete.
+      if (editingPath.current) {
+        let target = opt.target;
+
+        // If Fabric didn't hit the tiny circle, do a tolerant nearest-handle search.
+        if (!target) {
+          const nearest = findNearestEditHandle(canvas, opt);
+          if (nearest) {
+            target = nearest;
+          }
+        }
+
+        if (target && target.pointData) {
+          // Update selected anchor index + color
+          if (target.pointData.handleType === 'anchor') {
+            selectedAnchorIndex.current = target.pointData.index;
+
+            // reset other anchors color
+            editingPathHandles.current.forEach(h => {
+              if (h?.pointData?.handleType === 'anchor') {
+                const isSelected = h.pointData.index === target.pointData.index;
+                h.set({ fill: isSelected ? (HANDLE_COLORS.anchorSelected || '#FF4500') : (HANDLE_COLORS.anchor || '#1E90FF') });
+              }
+            });
+          }
+
+          // Ensure it's active for keyboard operations
+          try {
+            canvas.setActiveObject(target);
+          } catch {
+            // ignore
+          }
+          canvas.renderAll();
+          return;
+        }
+      }
+
       // Pan mode
-      if (activeTool === TOOLS.PAN || opt.e.altKey) {
+      // NOTE: Some host environments can report altKey=true unexpectedly.
+      // Only use Alt-to-pan when we're not in SELECT/DIRECT_SELECT and the primary button is down.
+      const isPrimaryButton = opt?.e?.buttons ? (opt.e.buttons & 1) === 1 : opt?.e?.button === 0;
+      const altPanAllowed = activeTool !== TOOLS.SELECT && activeTool !== TOOLS.DIRECT_SELECT;
+      const shouldAltPan = !!opt?.e?.altKey && altPanAllowed && isPrimaryButton;
+
+      if (activeTool === TOOLS.PAN || shouldAltPan) {
         isPanning.current = true;
         canvas.selection = false;
         const clientX = opt.e.touches ? opt.e.touches[0].clientX : opt.e.clientX;
@@ -609,12 +674,18 @@ export function useFabricCanvas(canvasRef, containerRef) {
       if (activeTool === TOOLS.DIRECT_SELECT) {
         const target = opt.target;
         
-        // Перевіряємо чи клікнули на anchor handle
-        if (target && target.anchorData) {
-          // Клікнули на anchor точку - виділяємо її
-          selectedAnchorIndex.current = target.anchorData.pointIndex;
+        // Перевіряємо чи клікнули на handle (anchor/control) з професійного редактора
+        if (target && target.pointData) {
+          // If it's an anchor handle, mark it selected for hover coloring
+          if (target.pointData.handleType === 'anchor') {
+            selectedAnchorIndex.current = target.pointData.index;
+            isDraggingAnchor.current = true;
+            target.set({ fill: HANDLE_COLORS.anchorSelected || '#FF4500' });
+            canvas.renderAll();
+            return;
+          }
+          // For control handles, just let Fabric begin moving; updatePathPoint handlers will run
           isDraggingAnchor.current = true;
-          target.set({ fill: '#ff6b00' }); // Виділений колір
           canvas.renderAll();
           return;
         }
@@ -638,15 +709,15 @@ export function useFabricCanvas(canvasRef, containerRef) {
         const target = opt.target;
         
         // Клікнули на anchor - видаляємо його (TODO: реалізувати видалення точки)
-        if (target && target.anchorData) {
+        if (target && target.pointData && target.pointData.handleType === 'anchor') {
           // Поки що просто виділяємо
-          selectedAnchorIndex.current = target.anchorData.pointIndex;
+          selectedAnchorIndex.current = target.pointData.index;
           target.set({ fill: '#ff0000' });
           canvas.renderAll();
           return;
         }
         
-        // Клікнули на path - додаємо нову точку (TODO: реалізувати додавання точки)
+        // Клікнули на path - додаємо/редагуємо точки (TODO: реалізувати додавання точки)
         if (target && target.type === 'path') {
           enterPathEditMode(canvas, target);
         }
@@ -671,7 +742,7 @@ export function useFabricCanvas(canvasRef, containerRef) {
         canvas.requestRenderAll();
         return;
       }
-      
+
       // PEN tool - drag to create bezier control handles
       if (activeTool === TOOLS.PEN && draggedControlHandle.current && isDrawingPath.current) {
         const pointer = getPointerPosition(opt, canvas);
@@ -704,9 +775,10 @@ export function useFabricCanvas(canvasRef, containerRef) {
         return;
       }
       
-      // DIRECT_SELECT - оновлення позиції anchor при перетягуванні
-      if (activeTool === TOOLS.DIRECT_SELECT && isDraggingAnchor.current && opt.target && opt.target.anchorData) {
-        updateAnchorPosition(opt.target, canvas);
+      // DIRECT_SELECT - оновлення позиції handle при перетягуванні (anchor/control)
+      if (activeTool === TOOLS.DIRECT_SELECT && isDraggingAnchor.current && opt.target && opt.target.pointData) {
+        // updatePathPoint already handles local transform and control line updates
+        updatePathPoint(opt.target, canvas);
         return;
       }
       
@@ -809,12 +881,15 @@ export function useFabricCanvas(canvasRef, containerRef) {
         return;
       }
       
-      // DIRECT_SELECT - завершення перетягування anchor
+      // DIRECT_SELECT - завершення перетягування handle
       if (activeTool === TOOLS.DIRECT_SELECT && isDraggingAnchor.current) {
         isDraggingAnchor.current = false;
-        // Скидаємо колір handle
-        if (opt.target && opt.target.anchorData) {
-          opt.target.set({ fill: '#4a90d9' });
+        // Скидаємо колір handle (тільки для anchor)
+        if (opt.target && opt.target.pointData && opt.target.pointData.handleType === 'anchor') {
+          const isSelected = selectedAnchorIndex.current === opt.target.pointData.index;
+          opt.target.set({
+            fill: isSelected ? (HANDLE_COLORS.anchorSelected || '#FF4500') : (HANDLE_COLORS.anchor || '#1E90FF')
+          });
           canvas.renderAll();
         }
         return;
@@ -883,6 +958,12 @@ export function useFabricCanvas(canvasRef, containerRef) {
     const updateCanvasState = (state) => {
       const canvas = fabricCanvasRef.current;
       if (!canvas) return;
+
+      // If we leave direct-select/edit tools, make sure edit mode is cleaned up
+      // (otherwise edit handles can linger and break normal selection/delete)
+      if (editingPath.current && ![TOOLS.DIRECT_SELECT, TOOLS.ANCHOR_POINT].includes(state.activeTool)) {
+        exitPathEditMode(canvas);
+      }
       
       // Режим пензля
       if (state.activeTool === TOOLS.BRUSH) {
@@ -929,7 +1010,8 @@ export function useFabricCanvas(canvasRef, containerRef) {
         } else if (state.activeTool === TOOLS.DIRECT_SELECT) {
           canvas.defaultCursor = 'default';
           canvas.hoverCursor = 'pointer';
-          canvas.selection = true;
+          // Keep Fabric selection off in direct-select. Handles take mouse events.
+          canvas.selection = false;
         } else {
           canvas.defaultCursor = 'default';
           canvas.hoverCursor = 'move';
@@ -985,14 +1067,64 @@ export function useFabricCanvas(canvasRef, containerRef) {
       }
     };
     
+    // Add deletion handler for Direct Select
+    const handleDeleteAnchor = (event) => {
+      const canvas = fabricCanvasRef.current;
+      if (!canvas || !editingPath.current) return;
+      
+      // Get handles from event detail or fall back to finding by selectedAnchorIndex
+      let handles = event?.detail?.handles;
+      
+      if (!handles || handles.length === 0) {
+        // Fallback: use selectedAnchorIndex
+        const index = selectedAnchorIndex.current;
+        if (index === null) return;
+        
+        // Find the handle from editingPathHandles
+        const handle = editingPathHandles.current.find(h => 
+            h.pointData && 
+            h.pointData.handleType === 'anchor' && 
+            h.pointData.index === index
+        );
+        
+        if (handle) {
+          handles = [handle];
+        }
+      }
+      
+      if (!handles || handles.length === 0) return;
+
+      // Process each handle (usually just one)
+      let needsRefresh = false;
+      for (const handle of handles) {
+        if (handle.pointData && handle.pointData.handleType === 'anchor') {
+          const success = removeAnchorPoint(handle, canvas);
+          if (success) {
+            needsRefresh = true;
+          }
+        }
+      }
+      
+      if (needsRefresh) {
+        // Refresh edit mode to show updated handles
+        const path = editingPath.current;
+        // Clean up current handles
+        exitPathEditMode(canvas);
+        // Re-enter edit mode for the updated path
+        enterPathEditMode(canvas, path);
+      }
+    };
+    
     window.addEventListener('cancelPath', handleCancelPath);
     window.addEventListener('finalizePath', handleFinalizePath);
+    window.addEventListener('deleteAnchor', handleDeleteAnchor);
     
     return () => {
       window.removeEventListener('cancelPath', handleCancelPath);
       window.removeEventListener('finalizePath', handleFinalizePath);
+      window.removeEventListener('deleteAnchor', handleDeleteAnchor);
     };
-  }, [finalizePath]);
+  }, [finalizePath, enterPathEditMode, exitPathEditMode]);
   
   // Обробка resize
   useEffect(() => {
@@ -1026,9 +1158,12 @@ export function useFabricCanvas(canvasRef, containerRef) {
   useEffect(() => {
     return () => {
       if (fabricCanvasRef.current) {
+        // Cleanup GPU resources before disposing canvas
+        cleanupGPUResources(fabricCanvasRef.current);
         fabricCanvasRef.current.dispose();
         fabricCanvasRef.current = null;
         isInitialized.current = false;
+        console.log('[FabricCanvas] Canvas disposed with GPU cleanup');
       }
     };
   }, []);
@@ -1038,3 +1173,4 @@ export function useFabricCanvas(canvasRef, containerRef) {
     fabricCanvas: fabricCanvasRef,
   };
 }
+

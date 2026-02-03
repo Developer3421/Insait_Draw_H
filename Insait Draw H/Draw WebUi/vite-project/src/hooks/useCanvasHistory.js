@@ -1,14 +1,17 @@
 /**
  * Canvas History Manager
  * Manages undo/redo history for Fabric.js canvas with proper state snapshots
+ * Optimized for GPU acceleration with batch operations
  */
 
 import { useCallback, useRef, useEffect } from 'react';
 import { useEditorStore } from '../stores/editorStore';
+import { optimizeBatchForGPU } from '../utils/fabricGpuConfig';
 
 // History configuration
 const MAX_HISTORY_SIZE = 50;
 const DEBOUNCE_DELAY = 150; // Faster response for better UX
+const BATCH_OPERATION_THRESHOLD = 10; // Number of objects that triggers batch mode
 
 // Global history storage (persists between component renders)
 const historyState = {
@@ -17,11 +20,13 @@ const historyState = {
   isPerformingUndoRedo: false,
   lastSavedState: null,
   initialized: false,
+  batchOperationInProgress: false,
 };
 
 /**
  * Serializes canvas state for history storage
  * Excludes page elements (artboard, shadow) from history
+ * Uses GPU-optimized approach to prevent UI freezing
  * @param {fabric.Canvas} canvas 
  * @returns {string} JSON string of canvas state
  */
@@ -29,6 +34,10 @@ function serializeCanvas(canvas) {
   if (!canvas) return null;
   
   try {
+    // Disable auto-rendering during serialization for performance
+    const wasRenderOnAddRemove = canvas.renderOnAddRemove;
+    canvas.renderOnAddRemove = false;
+    
     // Get all objects except page elements
     const allObjects = canvas.getObjects();
     const userObjects = allObjects.filter(obj => !obj.data?.isPageElement);
@@ -38,12 +47,14 @@ function serializeCanvas(canvas) {
     pageElements.forEach(obj => canvas.remove(obj));
     
     // toJSON with custom properties to preserve
+    // Optimized: only include essential properties
     const json = canvas.toJSON([
       'id', 
       'selectable', 
       'evented', 
       'name',
       'data', // custom data
+      'objectCaching', // preserve caching state
     ]);
     
     // Restore page elements
@@ -51,6 +62,9 @@ function serializeCanvas(canvas) {
       canvas.add(obj);
       canvas.sendObjectToBack(obj);
     });
+    
+    // Restore auto-rendering
+    canvas.renderOnAddRemove = wasRenderOnAddRemove;
     
     return JSON.stringify(json);
   } catch (err) {
@@ -62,6 +76,7 @@ function serializeCanvas(canvas) {
 /**
  * Deserializes and loads canvas state from history
  * Preserves page elements (artboard, shadow)
+ * GPU-optimized with batch rendering
  * @param {fabric.Canvas} canvas 
  * @param {string} stateJson 
  * @returns {Promise<void>}
@@ -71,6 +86,10 @@ async function deserializeCanvas(canvas, stateJson) {
   
   try {
     const state = JSON.parse(stateJson);
+    
+    // Disable auto-rendering during load for better performance
+    const wasRenderOnAddRemove = canvas.renderOnAddRemove;
+    canvas.renderOnAddRemove = false;
     
     // Save page elements before clearing
     const pageElements = canvas.getObjects().filter(obj => obj.data?.isPageElement);
@@ -84,6 +103,9 @@ async function deserializeCanvas(canvas, stateJson) {
     pageElements.forEach(obj => canvas.remove(obj));
     await canvas.loadFromJSON(state);
     
+    // Get newly loaded objects for GPU optimization
+    const loadedObjects = canvas.getObjects().filter(obj => !obj.data?.isPageElement);
+    
     // Restore page elements at the back
     pageElements.forEach(obj => {
       canvas.add(obj);
@@ -91,17 +113,36 @@ async function deserializeCanvas(canvas, stateJson) {
     });
     
     // Ensure all user objects are selectable and evented
-    canvas.getObjects().forEach(obj => {
+    // Also apply GPU optimizations for large object counts
+    const needsBatchOptimization = loadedObjects.length > BATCH_OPERATION_THRESHOLD;
+    
+    loadedObjects.forEach(obj => {
       if (!obj.data?.isPageElement) {
         if (obj.selectable === undefined) obj.selectable = true;
         if (obj.evented === undefined) obj.evented = true;
+        
+        // Enable object caching for GPU acceleration
+        if (needsBatchOptimization) {
+          obj.objectCaching = true;
+          obj.noScaleCache = true;
+          obj.statefullCache = false;
+        }
       }
     });
     
-    canvas.renderAll();
+    // Apply batch GPU optimization if needed
+    if (needsBatchOptimization) {
+      optimizeBatchForGPU(loadedObjects, canvas);
+    }
     
-    // Sync layers with store
-    syncLayersWithCanvas(canvas);
+    // Restore auto-rendering and do single render
+    canvas.renderOnAddRemove = wasRenderOnAddRemove;
+    canvas.requestRenderAll();
+    
+    // Sync layers with store (deferred to not block UI)
+    requestAnimationFrame(() => {
+      syncLayersWithCanvas(canvas);
+    });
   } catch (err) {
     console.error('Error deserializing canvas:', err);
   }

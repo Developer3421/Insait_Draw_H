@@ -11,22 +11,20 @@ const safeStorage = {
     try {
       const value = localStorage.getItem(name);
       if (value === null) return null;
-      
-      // Try to parse and validate the stored value
+
+      // Validate the stored JSON without transforming it.
+      // Important: zustand's persist expects getItem to return the *stored string* (or null).
       const parsed = JSON.parse(value);
-      
-      // Validate that it has a valid language
+
       if (parsed && parsed.state && parsed.state.language) {
         if (SUPPORTED_LANGUAGES.includes(parsed.state.language)) {
           return value;
         }
       }
-      
-      // If validation fails, remove corrupted data and return null
+
       localStorage.removeItem(name);
       return null;
     } catch (error) {
-      // If parsing fails, remove corrupted data
       try {
         localStorage.removeItem(name);
       } catch {
@@ -39,7 +37,6 @@ const safeStorage = {
     try {
       localStorage.setItem(name, value);
     } catch (error) {
-      // Handle quota exceeded or other storage errors
       console.warn('Failed to save language preference:', error);
     }
   },
@@ -552,7 +549,8 @@ export const useLanguageStore = create(
         const validLang = SUPPORTED_LANGUAGES.includes(lang) ? lang : DEFAULT_LANGUAGE;
         set({ language: validLang });
         // Also sync to backend for Microsoft Store persistence
-        syncLanguageToBackend(validLang);
+        // (avoid ignored Promise warnings)
+        void syncLanguageToBackend(validLang);
       },
       t: (key) => {
         const lang = get().language;

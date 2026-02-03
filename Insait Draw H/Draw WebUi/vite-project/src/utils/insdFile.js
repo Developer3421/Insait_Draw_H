@@ -26,7 +26,7 @@ const FORMAT_MIME_TYPE = 'application/vnd.insait.draw.document';
  */
 function generateContentTypes() {
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+<Types xmlns="https://schemas.openxmlformats.org/package/2006/content-types">
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
   <Default Extension="xml" ContentType="application/xml"/>
   <Default Extension="json" ContentType="application/json"/>
@@ -45,11 +45,11 @@ function generateContentTypes() {
  */
 function generateRels() {
   return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Id="rId1" Type="http://schemas.insait.com/draw/2024/relationships/document" Target="document/document.json"/>
-  <Relationship Id="rId2" Type="http://schemas.insait.com/draw/2024/relationships/settings" Target="document/settings.json"/>
-  <Relationship Id="rId3" Type="http://schemas.insait.com/draw/2024/relationships/layers" Target="document/layers.json"/>
-  <Relationship Id="rId4" Type="http://schemas.openxmlformats.org/package/2006/relationships/metadata/thumbnail" Target="thumbnail.png"/>
+<Relationships xmlns="https://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="https://schemas.insait.com/draw/2024/relationships/document" Target="document/document.json"/>
+  <Relationship Id="rId2" Type="https://schemas.insait.com/draw/2024/relationships/settings" Target="document/settings.json"/>
+  <Relationship Id="rId3" Type="https://schemas.insait.com/draw/2024/relationships/layers" Target="document/layers.json"/>
+  <Relationship Id="rId4" Type="https://schemas.openxmlformats.org/package/2006/relationships/metadata/thumbnail" Target="thumbnail.png"/>
 </Relationships>`;
 }
 

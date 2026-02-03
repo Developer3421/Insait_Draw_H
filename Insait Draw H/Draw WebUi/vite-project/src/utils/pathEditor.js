@@ -191,6 +191,32 @@ export function createPathEditHandles(canvas, pathObject) {
   const points = parsePathPoints(pathObject);
   const handles = [];
   const controlLines = [];
+
+  // Helper: mark objects as transient edit handles (not real artwork)
+  // Handles are selectable so they can be picked and deleted like normal objects
+  const markAsEditHandle = (obj, isAnchor = false) => {
+    obj.set({
+      // Both anchors and control points should be selectable for clicking
+      selectable: true,
+      evented: true,
+      hasControls: false,
+      hasBorders: isAnchor,
+      borderColor: HANDLE_COLORS.anchorSelected,
+      excludeFromExport: true,
+      // Improve hit-testing reliability for small circles
+      perPixelTargetFind: true,
+      targetFindTolerance: HANDLE_SIZES.hitTolerance,
+      transparentCorners: false,
+      cornerSize: 0,
+    });
+    // Custom flag used elsewhere (e.g. delete filtering)
+    obj.customData = {
+      ...(obj.customData || {}),
+      isEditHandle: true,
+      isAnchor: isAnchor,
+    };
+    return obj;
+  };
   
   // First pass: create anchors and store their positions
   const anchorHandles = new Map();
@@ -206,13 +232,10 @@ export function createPathEditHandles(canvas, pathObject) {
         strokeWidth: 2,
         originX: 'center',
         originY: 'center',
-        selectable: true,
-        evented: true,
-        hasControls: false,
-        hasBorders: false,
         hoverCursor: 'pointer',
         moveCursor: 'move',
       });
+      markAsEditHandle(handle, true); // isAnchor = true
       
       handle.pointData = {
         ...point,
@@ -238,13 +261,10 @@ export function createPathEditHandles(canvas, pathObject) {
         strokeWidth: 1.5,
         originX: 'center',
         originY: 'center',
-        selectable: true,
-        evented: true,
-        hasControls: false,
-        hasBorders: false,
         hoverCursor: 'pointer',
         moveCursor: 'move',
       });
+      markAsEditHandle(handle, false); // isAnchor = false for control points
       
       handle.pointData = {
         ...point,
@@ -276,7 +296,14 @@ export function createPathEditHandles(canvas, pathObject) {
           selectable: false,
           evented: false,
           strokeDashArray: [4, 4],
+          excludeFromExport: true,
         });
+
+        // Also mark as transient helper
+        line.customData = {
+          ...(line.customData || {}),
+          isEditHandle: true,
+        };
         
         line.controlData = {
           anchorHandle,
@@ -291,7 +318,7 @@ export function createPathEditHandles(canvas, pathObject) {
       handles.push(handle);
     }
   });
-  
+
   // Add all elements to canvas (lines first, then handles on top)
   controlLines.forEach(line => canvas.add(line));
   handles.forEach(handle => canvas.add(handle));
@@ -307,7 +334,7 @@ export function createPathEditHandles(canvas, pathObject) {
   });
   
   canvas.renderAll();
-  
+
   // Return cleanup function
   const cleanup = () => {
     controlLines.forEach(line => canvas.remove(line));
@@ -416,10 +443,62 @@ export function addAnchorPoint(pathObject, x, y, segmentIndex, canvas) {
  * Removes an anchor point from a path
  * @param {Object} handle - The anchor handle to remove
  * @param {Object} canvas - Fabric.js canvas
+ * @returns {boolean} True if point was removed and UI needs refresh
  */
 export function removeAnchorPoint(handle, canvas) {
-  // TODO: Implement anchor point removal
-  console.log('Remove anchor point not yet implemented');
+  if (!handle || !handle.pointData || !canvas) return false;
+  
+  const { pathObject, cmdIndex } = handle.pointData;
+  if (!pathObject || !pathObject.path) return false;
+  
+  const pathData = pathObject.path;
+  
+  // Don't allow deleting if it would leave less than 2 points
+  // (Assuming basic path needs start and end, although valid SVG path can be just M)
+  // For usability, let's say minimum 2 points.
+  if (pathData.length <= 2) {
+    return false;
+  }
+  
+  // Remove the command
+  pathData.splice(cmdIndex, 1);
+  
+  // If we removed the starting point (now corresponding to index 0),
+  // we must ensure the new first command is a 'M' (Move To)
+  if (cmdIndex === 0 && pathData.length > 0) {
+    const firstCmd = pathData[0];
+    const type = firstCmd[0];
+    const len = firstCmd.length;
+    
+    // Last 2 coordinates are always x, y (endpoint) for L, Q, C, A
+    // M takes x, y
+    // We construct new M command using the endpoint of the command that is now first
+    const x = firstCmd[len - 2];
+    const y = firstCmd[len - 1];
+    
+    pathData[0] = ['M', x, y];
+  } else if (cmdIndex === 0) {
+    // If path became empty (shouldn't happen due to check above)
+    // pass
+  }
+
+  // Determine if the path was closed and we removed a point?
+  // Fabric path data handling will generally render what is provided.
+
+  // Update path object
+  pathObject.set({ dirty: true });
+  
+  // We need to re-initialize the path dimensions/coords because the bounding box changed
+  const dim = pathObject._calcDimensions();
+  pathObject.width = dim.width;
+  pathObject.height = dim.height;
+  pathObject.pathOffset.x = dim.left + dim.width / 2;
+  pathObject.pathOffset.y = dim.top + dim.height / 2;
+  
+  pathObject.setCoords();
+  canvas.renderAll();
+  
+  return true;
 }
 
 /**

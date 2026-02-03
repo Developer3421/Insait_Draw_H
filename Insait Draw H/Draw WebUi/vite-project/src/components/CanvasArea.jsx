@@ -3,6 +3,9 @@ import { useFabricCanvas } from '../hooks/useFabricCanvas';
 import { useArtboard, getPageBounds, zoomToPage100, zoomToFitPage } from '../hooks/useArtboard';
 import { useEditorStore, TOOLS } from '../stores/editorStore';
 import { getHistoryManager } from '../hooks/useCanvasHistory';
+import { traceImage, TRACE_PRESETS } from '../utils/imageTracer';
+import { optimizeObjectForGPU, optimizeBatchForGPU, DeferredRenderer } from '../utils/fabricGpuConfig';
+import * as fabric from 'fabric';
 import './CanvasArea.css';
 
 export function CanvasArea() {
@@ -219,7 +222,6 @@ export function CanvasArea() {
           case 'c': setActiveTool(TOOLS.CIRCLE); break;
           case 't': setActiveTool(TOOLS.TEXT); break;
           case 'p': setActiveTool(TOOLS.PEN); break;
-          case 'a': setActiveTool(TOOLS.DIRECT_SELECT); break;
         }
       }
       
@@ -243,17 +245,50 @@ export function CanvasArea() {
       
       // Delete
       if (e.key === 'Delete' || e.key === 'Backspace') {
+        const { activeTool } = useEditorStore.getState();
+        
         if (canvas) {
           const activeObjects = canvas.getActiveObjects();
+
+          // If user selected path edit handles (anchor points), allow deleting them
+          // regardless of the active tool (so it works without switching tools).
+          const anchorHandles = activeObjects.filter(o =>
+            o?.pointData && o.pointData.handleType === 'anchor'
+          );
+
+          if (anchorHandles.length > 0) {
+            window.dispatchEvent(new CustomEvent('deleteAnchor', {
+              detail: { handles: anchorHandles }
+            }));
+            return;
+          }
+          
+          // (keep the activeTool variable for other potential tool-specific behaviors)
+          void activeTool;
+
           if (activeObjects.length > 0) {
+            // Filter out transient edit handles created by the path editor
+            const objectsToDelete = activeObjects.filter(o => !(
+              (o?.customData && o.customData.isEditHandle) ||
+              // safety net: some helpers are only marked by excludeFromExport
+              o?.excludeFromExport === true ||
+              // point handles also have pointData
+              !!o?.pointData
+            ));
+
+            // If user selected only handles, do nothing (don't break layers/history)
+            if (objectsToDelete.length === 0) {
+              return;
+            }
+
             // Save history state before delete
             const historyManager = getHistoryManager();
             historyManager.saveState(true);
             
             const { layers, setLayers } = useEditorStore.getState();
-            const objectIds = activeObjects.map(o => o.id);
+            const objectIds = objectsToDelete.map(o => o.id);
             
-            activeObjects.forEach(obj => canvas.remove(obj));
+            objectsToDelete.forEach(obj => canvas.remove(obj));
             canvas.discardActiveObject();
             canvas.renderAll();
             
@@ -300,6 +335,205 @@ export function CanvasArea() {
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+  
+  // Image tracing handler
+  useEffect(() => {
+    const handleTraceImage = async () => {
+      const canvas = useEditorStore.getState().canvas;
+      if (!canvas) return;
+      
+      // Check if there's a selected image on canvas
+      const activeObject = canvas.getActiveObject();
+      
+      if (activeObject && activeObject.type === 'image') {
+        // Trace the selected image
+        try {
+          const result = await traceImage(activeObject, 'default');
+          
+          // Get position of original image
+          const left = activeObject.left;
+          const top = activeObject.top;
+          
+          // Save history
+          const historyManager = getHistoryManager();
+          historyManager.saveState(true);
+          
+          // Disable auto-rendering during batch add for GPU performance
+          const wasRenderOnAddRemove = canvas.renderOnAddRemove;
+          canvas.renderOnAddRemove = false;
+          
+          // Create a group of paths from traced result
+          const { addLayer } = useEditorStore.getState();
+          const createdPaths = [];
+          
+          // Use deferred rendering for large path counts
+          const useDeferredRendering = result.paths.length > 50;
+          let deferredRenderer = null;
+          
+          if (useDeferredRendering) {
+            deferredRenderer = new DeferredRenderer(canvas, 20, 8);
+          }
+          
+          result.paths.forEach((pathData, index) => {
+            const createPath = () => {
+              try {
+                const path = new fabric.Path(pathData.d, {
+                  left: left,
+                  top: top,
+                  fill: pathData.fill,
+                  stroke: pathData.stroke !== 'none' ? pathData.stroke : null,
+                  strokeWidth: pathData.strokeWidth || 0,
+                  opacity: pathData.opacity,
+                  selectable: true,
+                  evented: true,
+                  // GPU optimization settings
+                  objectCaching: true,
+                  noScaleCache: true,
+                  statefullCache: false,
+                });
+                
+                path.id = `traced_path_${Date.now()}_${index}`;
+                path.name = 'Traced Path';
+                path.customData = {
+                  type: 'traced',
+                  sourceType: 'image',
+                };
+                
+                // Apply GPU optimization
+                optimizeObjectForGPU(path);
+                
+                canvas.add(path);
+                createdPaths.push(path);
+                addLayer(path);
+              } catch (err) {
+                console.warn('Failed to create path:', err);
+              }
+            };
+            
+            if (useDeferredRendering) {
+              deferredRenderer.add(createPath);
+            } else {
+              createPath();
+            }
+          });
+          
+          // Apply batch GPU optimization
+          if (!useDeferredRendering && createdPaths.length > 10) {
+            optimizeBatchForGPU(createdPaths, canvas);
+          }
+          
+          // Restore auto-rendering and do single render
+          canvas.renderOnAddRemove = wasRenderOnAddRemove;
+          canvas.requestRenderAll();
+          
+          alert(`Image traced successfully! Created ${result.paths.length} paths.`);
+          
+        } catch (err) {
+          console.error('Error tracing image:', err);
+          alert('Failed to trace image: ' + err.message);
+        }
+      } else {
+        // No image selected - open file picker
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        
+        input.onchange = async (e) => {
+          const file = e.target.files?.[0];
+          if (!file) return;
+          
+          try {
+            const result = await traceImage(file, 'default');
+            
+            // Save history
+            const historyManager = getHistoryManager();
+            historyManager.saveState(true);
+            
+            // Disable auto-rendering during batch add for GPU performance
+            const wasRenderOnAddRemove = canvas.renderOnAddRemove;
+            canvas.renderOnAddRemove = false;
+            
+            // Get center of canvas
+            const center = canvas.getCenterPoint();
+            const { addLayer } = useEditorStore.getState();
+            const createdPaths = [];
+            
+            // Use deferred rendering for large path counts
+            const useDeferredRendering = result.paths.length > 50;
+            let deferredRenderer = null;
+            
+            if (useDeferredRendering) {
+              deferredRenderer = new DeferredRenderer(canvas, 20, 8);
+            }
+            
+            // Create paths from traced result
+            result.paths.forEach((pathData, index) => {
+              const createPath = () => {
+                try {
+                  const path = new fabric.Path(pathData.d, {
+                    left: center.x - result.width / 2,
+                    top: center.y - result.height / 2,
+                    fill: pathData.fill,
+                    stroke: pathData.stroke !== 'none' ? pathData.stroke : null,
+                    strokeWidth: pathData.strokeWidth || 0,
+                    opacity: pathData.opacity,
+                    selectable: true,
+                    evented: true,
+                    // GPU optimization settings
+                    objectCaching: true,
+                    noScaleCache: true,
+                    statefullCache: false,
+                  });
+                  
+                  path.id = `traced_path_${Date.now()}_${index}`;
+                  path.name = 'Traced Path';
+                  path.customData = {
+                    type: 'traced',
+                    sourceType: 'file',
+                  };
+                  
+                  // Apply GPU optimization
+                  optimizeObjectForGPU(path);
+                  
+                  canvas.add(path);
+                  createdPaths.push(path);
+                  addLayer(path);
+                } catch (err) {
+                  console.warn('Failed to create path:', err);
+                }
+              };
+              
+              if (useDeferredRendering) {
+                deferredRenderer.add(createPath);
+              } else {
+                createPath();
+              }
+            });
+            
+            // Apply batch GPU optimization
+            if (!useDeferredRendering && createdPaths.length > 10) {
+              optimizeBatchForGPU(createdPaths, canvas);
+            }
+            
+            // Restore auto-rendering and do single render
+            canvas.renderOnAddRemove = wasRenderOnAddRemove;
+            canvas.requestRenderAll();
+            
+            alert(`Image traced successfully! Created ${result.paths.length} paths.`);
+            
+          } catch (err) {
+            console.error('Error tracing image:', err);
+            alert('Failed to trace image: ' + err.message);
+          }
+        };
+        
+        input.click();
+      }
+    };
+    
+    window.addEventListener('traceImage', handleTraceImage);
+    return () => window.removeEventListener('traceImage', handleTraceImage);
   }, []);
   
   return (

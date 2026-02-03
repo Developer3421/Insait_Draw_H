@@ -4,6 +4,7 @@ import { useCallback, useEffect } from 'react';
 import { useCanvasHistory, getHistoryManager } from '../hooks/useCanvasHistory';
 import { getPageBounds } from '../hooks/useArtboard';
 import { saveAsINSD, loadFromINSD, downloadBlob } from '../utils/insdFile';
+import { optimizeBatchForGPU } from '../utils/fabricGpuConfig';
 import './ActionsBar.css';
 
 // Clipboard storage outside component to persist between renders
@@ -121,14 +122,26 @@ export function ActionsBar() {
           // Завантажуємо .insd файл
           const { canvasJson, settings } = await loadFromINSD(file);
           
+          // Disable auto-rendering during load for GPU optimization
+          const wasRenderOnAddRemove = canvas.renderOnAddRemove;
+          canvas.renderOnAddRemove = false;
+          
           await new Promise((resolve) => {
             canvas.loadFromJSON(canvasJson, () => {
-              canvas.renderAll();
+              // Apply GPU optimization to loaded objects
+              const loadedObjects = canvas.getObjects().filter(obj => !obj.data?.isPageElement);
+              if (loadedObjects.length > 10) {
+                optimizeBatchForGPU(loadedObjects, canvas);
+              }
               resolve();
             }, (obj, error) => {
               if (error) console.warn('Object load warning:', error);
             });
           });
+          
+          // Restore rendering and render
+          canvas.renderOnAddRemove = wasRenderOnAddRemove;
+          canvas.requestRenderAll();
           
           // Застосовуємо налаштування
           if (settings) {
@@ -156,8 +169,22 @@ export function ActionsBar() {
           reader.onload = (event) => {
             try {
               const json = JSON.parse(event.target.result);
+              
+              // Disable auto-rendering during load for GPU optimization
+              const wasRenderOnAddRemove = canvas.renderOnAddRemove;
+              canvas.renderOnAddRemove = false;
+              
               canvas.loadFromJSON(json, () => {
-                canvas.renderAll();
+                // Apply GPU optimization to loaded objects
+                const loadedObjects = canvas.getObjects().filter(obj => !obj.data?.isPageElement);
+                if (loadedObjects.length > 10) {
+                  optimizeBatchForGPU(loadedObjects, canvas);
+                }
+                
+                // Restore rendering and render
+                canvas.renderOnAddRemove = wasRenderOnAddRemove;
+                canvas.requestRenderAll();
+                
                 const { syncLayersFromCanvas } = useEditorStore.getState();
                 syncLayersFromCanvas();
               });

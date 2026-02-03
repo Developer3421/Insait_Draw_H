@@ -72,6 +72,7 @@
 
     <ItemGroup>
       <Folder Include="Draw WebUi\" />
+      <Folder Include="Draw WebUi\vite-project\public\assets\" />
     </ItemGroup>
 
     <ItemGroup>
@@ -81,19 +82,35 @@
 
     <!-- Включаємо React dist файли як embedded resources для включення в exe -->
     <ItemGroup>
-      <EmbeddedResource Include="Draw WebUi\vite-project\dist\**\*">
+      <!-- React/Vite build output embedded into exe -->
+      <EmbeddedResource Include="Draw WebUi\vite-project\dist\**\*" Exclude="Draw WebUi\vite-project\dist\favicon.png;Draw WebUi\vite-project\dist\vite.svg">
+        <LogicalName>Insait_Draw_H.wwwroot.%(RecursiveDir)%(Filename)%(Extension)</LogicalName>
+      </EmbeddedResource>
+
+      <!-- Also embed Vite public assets (served as-is) -->
+      <EmbeddedResource Include="Draw WebUi\vite-project\public\**\*">
         <LogicalName>Insait_Draw_H.wwwroot.%(RecursiveDir)%(Filename)%(Extension)</LogicalName>
       </EmbeddedResource>
     </ItemGroup>
 
     <!-- Also include wwwroot as Content for single-file self-extract -->
-    <ItemGroup Condition="'$(Configuration)' == 'Release'">
-      <Content Include="Draw WebUi\vite-project\dist\**\*">
+    <!-- In Debug we still want the files copied to output so the local server can serve them from disk. -->
+    <ItemGroup Condition="'$(Configuration)' == 'Release' or '$(Configuration)' == 'Debug'">
+      <Content Include="Draw WebUi\vite-project\dist\**\*" Exclude="Draw WebUi\vite-project\dist\favicon.png;Draw WebUi\vite-project\dist\vite.svg">
         <Link>wwwroot\%(RecursiveDir)%(Filename)%(Extension)</Link>
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
         <ExcludeFromSingleFile>false</ExcludeFromSingleFile>
       </Content>
+
+      <!-- Copy Vite public assets to wwwroot too -->
+      <Content Include="Draw WebUi\vite-project\public\**\*">
+        <Link>wwwroot\%(RecursiveDir)%(Filename)%(Extension)</Link>
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+        <ExcludeFromSingleFile>false</ExcludeFromSingleFile>
+      </Content>
+
     </ItemGroup>
 
     <!-- wwwroot копіюється автоматично через Content Include вище -->
@@ -154,4 +171,24 @@
       <Exec WorkingDirectory="Draw WebUi\vite-project" Command="npm run build" ContinueOnError="true" />
     </Target>
     -->
+
+    <!-- Dev convenience: in Debug copy React build output next to the app so filesystem mode works reliably -->
+    <Target Name="CopyReactDistToDebugOutput" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
+      <PropertyGroup>
+        <ReactDistDir>$(MSBuildProjectDirectory)\Draw WebUi\vite-project\dist</ReactDistDir>
+        <ReactPublicDir>$(MSBuildProjectDirectory)\Draw WebUi\vite-project\public</ReactPublicDir>
+        <WebRootOutDir>$(TargetDir)wwwroot</WebRootOutDir>
+      </PropertyGroup>
+
+      <ItemGroup>
+        <ReactDistFiles Include="$(ReactDistDir)\**\*" Condition="Exists('$(ReactDistDir)')" />
+        <ReactPublicFiles Include="$(ReactPublicDir)\**\*" Condition="Exists('$(ReactPublicDir)')" />
+      </ItemGroup>
+
+      <Message Importance="high" Text="Copying React dist to $(WebRootOutDir) (Debug)..." Condition="Exists('$(ReactDistDir)')" />
+      <Copy SourceFiles="@(ReactDistFiles)" DestinationFiles="@(ReactDistFiles->'$(WebRootOutDir)\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" Condition="Exists('$(ReactDistDir)')" />
+
+      <Message Importance="high" Text="Copying React public assets to $(WebRootOutDir) (Debug)..." Condition="Exists('$(ReactPublicDir)')" />
+      <Copy SourceFiles="@(ReactPublicFiles)" DestinationFiles="@(ReactPublicFiles->'$(WebRootOutDir)\%(RecursiveDir)%(Filename)%(Extension)')" SkipUnchangedFiles="true" Condition="Exists('$(ReactPublicDir)')" />
+    </Target>
 </Project>

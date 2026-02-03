@@ -3,6 +3,7 @@ import { useEditorStore, BOOLEAN_OPS } from '../stores/editorStore';
 import { useLanguageStore } from '../stores/languageStore';
 import { getHistoryManager } from '../hooks/useCanvasHistory';
 import { getPageBounds } from '../hooks/useArtboard';
+import { optimizeObjectForGPU, optimizeBatchForGPU, createOptimizedGroup } from '../utils/fabricGpuConfig';
 import {
   getPathFromObject,
   intersectShapes,
@@ -70,7 +71,18 @@ export function BooleanOps() {
       stroke: strokeColor,
       strokeWidth: strokeWidth,
       selectable: true,
+      // GPU optimization settings
+      objectCaching: true,
+      noScaleCache: true,
+      statefullCache: false,
     });
+
+    // Apply GPU optimization
+    optimizeObjectForGPU(newPath);
+
+    // Disable auto-rendering for batch operations
+    const wasRenderOnAddRemove = canvas.renderOnAddRemove;
+    canvas.renderOnAddRemove = false;
 
     // Видалити оригінальні об'єкти та їх шари
     if (obj1.id) removeLayerByObjectId(obj1.id);
@@ -82,7 +94,10 @@ export function BooleanOps() {
     canvas.add(newPath);
     canvas.setActiveObject(newPath);
     addLayer(newPath);
-    canvas.renderAll();
+    
+    // Restore rendering and do single render
+    canvas.renderOnAddRemove = wasRenderOnAddRemove;
+    canvas.requestRenderAll();
   };
 
   const handleGroupSelected = () => {
@@ -97,8 +112,22 @@ export function BooleanOps() {
     const historyManager = getHistoryManager();
     historyManager.saveState(true);
 
+    // Disable auto-rendering for batch operations - GPU optimization
+    const wasRenderOnAddRemove = canvas.renderOnAddRemove;
+    canvas.renderOnAddRemove = false;
+
+    // Apply GPU optimization to all objects before grouping
+    activeObjects.forEach(obj => {
+      optimizeObjectForGPU(obj);
+    });
+
+    // Create group with GPU-optimized settings
     const group = new Group(activeObjects, {
       selectable: true,
+      // GPU optimization settings
+      objectCaching: true,
+      noScaleCache: true,
+      statefullCache: false,
     });
 
     // Видалити оригінальні об'єкти та їх шари
@@ -109,7 +138,10 @@ export function BooleanOps() {
     canvas.add(group);
     canvas.setActiveObject(group);
     addLayer(group);
-    canvas.renderAll();
+    
+    // Restore rendering and do single render
+    canvas.renderOnAddRemove = wasRenderOnAddRemove;
+    canvas.requestRenderAll();
   };
 
   const handleUngroupSelected = () => {
@@ -124,6 +156,10 @@ export function BooleanOps() {
     const historyManager = getHistoryManager();
     historyManager.saveState(true);
 
+    // Disable auto-rendering for batch operations - GPU optimization
+    const wasRenderOnAddRemove = canvas.renderOnAddRemove;
+    canvas.renderOnAddRemove = false;
+
     // Видалити шар групи
     if (activeObject.id) removeLayerByObjectId(activeObject.id);
 
@@ -131,12 +167,16 @@ export function BooleanOps() {
     activeObject._restoreObjectsState();
     canvas.remove(activeObject);
     
+    // Apply GPU optimization to ungrouped items
     items.forEach((item) => {
+      optimizeObjectForGPU(item);
       canvas.add(item);
       addLayer(item);
     });
     
-    canvas.renderAll();
+    // Restore rendering and do single render
+    canvas.renderOnAddRemove = wasRenderOnAddRemove;
+    canvas.requestRenderAll();
   };
 
   const handleAlignLeft = () => alignObjects('left');

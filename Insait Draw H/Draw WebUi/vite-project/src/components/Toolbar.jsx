@@ -227,18 +227,11 @@ export function Toolbar() {
             〰️
           </button>
           <button
-            className={`tool-btn ${activeTool === TOOLS.ANCHOR_POINT ? 'active' : ''}`}
-            onClick={() => setActiveTool(TOOLS.ANCHOR_POINT)}
-            title={`${t('anchorPointTool') || 'Anchor Point Tool'} - Add/Remove/Convert points`}
+            className="tool-btn"
+            onClick={() => window.dispatchEvent(new CustomEvent('traceImage'))}
+            title={t('traceImage') || 'Trace Image to SVG - Convert raster to vector'}
           >
-            ⊕
-          </button>
-          <button
-            className={`tool-btn ${activeTool === TOOLS.DIRECT_SELECT ? 'active' : ''}`}
-            onClick={() => setActiveTool(TOOLS.DIRECT_SELECT)}
-            title={`${t('directSelectTool') || 'Direct Selection'} (A) - Edit individual points`}
-          >
-            ↗️
+            🎨
           </button>
         </div>
       </div>
