@@ -1,0 +1,50 @@
+Windows Registry Editor Version 5.00
+
+; Реєстрація асоціації файлів .insd для поточного користувача
+; НЕ потребує прав адміністратора
+; 
+; ВАЖЛИВО: Замініть шлях до exe файлу на свій!
+; Поточний шлях: C:\Program Files\Insait Draw H\Insait Draw H.exe
+; 
+; Для застосування:
+; 1. Відредагуйте шляхи нижче
+; 2. Двічі клікніть на цьому файлі
+; 3. Підтвердіть додавання до реєстру
+
+; Реєстрація розширення .insd
+[HKEY_CURRENT_USER\Software\Classes\.insd]
+@="InsaitDrawProject"
+"Content Type"="application/x-insait-draw"
+
+; Опис типу файлу
+[HKEY_CURRENT_USER\Software\Classes\InsaitDrawProject]
+@="Insait Draw Project"
+"FriendlyTypeName"="Insait Draw Project"
+
+; Іконка для файлів .insd (беремо з exe)
+[HKEY_CURRENT_USER\Software\Classes\InsaitDrawProject\DefaultIcon]
+@="C:\\Program Files\\Insait Draw H\\Insait Draw H.exe,0"
+
+; Команда відкриття
+[HKEY_CURRENT_USER\Software\Classes\InsaitDrawProject\shell]
+@="open"
+
+[HKEY_CURRENT_USER\Software\Classes\InsaitDrawProject\shell\open]
+@="Відкрити в Insait Draw"
+"FriendlyAppName"="Insait Draw H"
+
+[HKEY_CURRENT_USER\Software\Classes\InsaitDrawProject\shell\open\command]
+@="\"C:\\Program Files\\Insait Draw H\\Insait Draw H.exe\" \"%1\""
+
+; Реєстрація додатку
+[HKEY_CURRENT_USER\Software\Classes\Applications\Insait Draw H.exe]
+"FriendlyAppName"="Insait Draw H"
+
+[HKEY_CURRENT_USER\Software\Classes\Applications\Insait Draw H.exe\DefaultIcon]
+@="C:\\Program Files\\Insait Draw H\\Insait Draw H.exe,0"
+
+[HKEY_CURRENT_USER\Software\Classes\Applications\Insait Draw H.exe\shell\open\command]
+@="\"C:\\Program Files\\Insait Draw H\\Insait Draw H.exe\" \"%1\""
+
+[HKEY_CURRENT_USER\Software\Classes\Applications\Insait Draw H.exe\SupportedTypes]
+".insd"=""

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 
 // Supported languages
-const SUPPORTED_LANGUAGES = ['en', 'uk', 'de'];
+const SUPPORTED_LANGUAGES = ['en', 'uk', 'de', 'tr', 'ru'];
 const DEFAULT_LANGUAGE = 'en';
 
 // Safe localStorage wrapper that handles errors gracefully
@@ -67,6 +67,22 @@ export const translations = {
     triangle: 'Triangle',
     text: 'Text',
     textDoubleClick: 'Text (Double-click to add)',
+    
+    // Pro Shapes
+    proShapes: 'Pro Shapes',
+    star: 'Star',
+    polygon: 'Polygon',
+    hexagon: 'Hexagon',
+    ellipse: 'Ellipse',
+    arrow: 'Arrow',
+    spiral: 'Spiral',
+    heart: 'Heart',
+    roundedRect: 'Rounded Rectangle',
+    diamond: 'Diamond',
+    cross: 'Cross',
+    arc: 'Arc',
+    gear: 'Gear',
+    callout: 'Callout',
     
     // Path/Bezier tools
     pathTools: 'Path Tools',
@@ -223,6 +239,22 @@ export const translations = {
     text: 'Текст',
     textDoubleClick: 'Текст (Подвійний клік для додавання)',
     
+    // Професійні фігури
+    proShapes: 'Про Фігури',
+    star: 'Зірка',
+    polygon: 'Полігон',
+    hexagon: 'Шестикутник',
+    ellipse: 'Еліпс',
+    arrow: 'Стрілка',
+    spiral: 'Спіраль',
+    heart: 'Серце',
+    roundedRect: 'Заокруглений прямокутник',
+    diamond: 'Ромб',
+    cross: 'Хрест',
+    arc: 'Дуга',
+    gear: 'Шестерня',
+    callout: 'Виноска',
+    
     // Інструменти контурів/Безьє
     pathTools: 'Контури',
     penTool: 'Перо',
@@ -378,6 +410,22 @@ export const translations = {
     text: 'Text',
     textDoubleClick: 'Text (Doppelklick zum Hinzufügen)',
     
+    // Pro-Formen
+    proShapes: 'Pro-Formen',
+    star: 'Stern',
+    polygon: 'Polygon',
+    hexagon: 'Sechseck',
+    ellipse: 'Ellipse',
+    arrow: 'Pfeil',
+    spiral: 'Spirale',
+    heart: 'Herz',
+    roundedRect: 'Abgerundetes Rechteck',
+    diamond: 'Raute',
+    cross: 'Kreuz',
+    arc: 'Bogen',
+    gear: 'Zahnrad',
+    callout: 'Sprechblase',
+    
     // Farben
     colors: 'Farben',
     fill: 'Füllung',
@@ -509,34 +557,360 @@ export const translations = {
     fontSize: 'Größe',
     textAlign: 'Ausrichtung',
   },
+  tr: {
+    // Araçlar
+    tools: 'Araçlar',
+    select: 'Seçim',
+    pan: 'Tuval Kaydır',
+    brush: 'Fırça',
+    eraser: 'Silgi',
+    
+    // Şekiller
+    shapes: 'Şekiller',
+    line: 'Çizgi',
+    rectangle: 'Dikdörtgen',
+    circle: 'Daire',
+    triangle: 'Üçgen',
+    text: 'Metin',
+    textDoubleClick: 'Metin (Eklemek için çift tıklayın)',
+    
+    // Profesyonel Şekiller
+    proShapes: 'Pro Şekiller',
+    star: 'Yıldız',
+    polygon: 'Çokgen',
+    hexagon: 'Altıgen',
+    ellipse: 'Elips',
+    arrow: 'Ok',
+    spiral: 'Spiral',
+    heart: 'Kalp',
+    roundedRect: 'Yuvarlatılmış Dikdörtgen',
+    diamond: 'Elmas',
+    cross: 'Çarpı',
+    arc: 'Yay',
+    gear: 'Dişli',
+    callout: 'Konuşma Balonu',
+    
+    // Yol/Bezier araçları
+    pathTools: 'Yol Araçları',
+    penTool: 'Kalem Aracı',
+    curvatureTool: 'Eğrilik',
+    anchorPointTool: 'Bağlantı Noktası',
+    directSelectTool: 'Doğrudan Seçim',
+    
+    // Renkler
+    colors: 'Renkler',
+    fill: 'Dolgu',
+    stroke: 'Kontur',
+    clickFillRightClickStroke: 'Tıkla - dolgu, Sağ tıkla - kontur',
+    
+    // Kontur
+    strokeWidth: 'Kontur',
+    
+    // Metin ayarları
+    textSettings: 'Metin',
+    
+    // Yakınlaştırma
+    zoom: 'Yakınlaştır',
+    zoomIn: 'Yakınlaştır',
+    zoomOut: 'Uzaklaştır',
+    resetZoom: 'Sıfırla',
+    
+    // Yapışma
+    snapping: 'Yapışma',
+    grid: 'Izgara',
+    toGrid: 'Izgaraya',
+    toObjects: 'Nesnelere',
+    
+    // Eylemler
+    history: 'Geçmiş',
+    undo: 'Geri Al',
+    redo: 'Yinele',
+    
+    // Düzenleme
+    editing: 'Düzenleme',
+    copy: 'Kopyala',
+    paste: 'Yapıştır',
+    delete: 'Sil',
+    
+    // Dosya
+    file: 'Dosya',
+    savePNG: 'PNG',
+    save: 'Kaydet',
+    open: 'Aç',
+    clear: 'Temizle',
+    clearConfirm: 'Tuvali temizlemek istediğinizden emin misiniz?',
+    loadError: 'Dosya yükleme hatası: ',
+    saveError: 'Dosya kaydetme hatası: ',
+    
+    // Katmanlar
+    layers: 'Katmanlar',
+    noObjects: 'Nesne yok',
+    enterNewName: 'Yeni katman adını girin:',
+    hide: 'Gizle',
+    show: 'Göster',
+    lock: 'Kilitle',
+    unlock: 'Kilidi Aç',
+    up: 'Yukarı',
+    down: 'Aşağı',
+    deleteLayer: 'Sil',
+    toFront: 'Öne Getir',
+    toBack: 'Arkaya Gönder',
+    doubleClickRename: 'Yeniden adlandırmak için çift tıklayın',
+    
+    // Boolean işlemleri
+    combine: 'Birleştir',
+    union: 'Birleştir',
+    subtract: 'Çıkar',
+    intersect: 'Kesişim',
+    
+    // Gruplama
+    grouping: 'Gruplama',
+    group: 'Grupla',
+    ungroup: 'Grubu Çöz',
+    
+    // Hizalama
+    alignment: 'Hizalama',
+    alignLeft: 'Sola Hizala',
+    alignCenter: 'Ortaya Hizala',
+    alignRight: 'Sağa Hizala',
+    alignTop: 'Üste Hizala',
+    alignMiddle: 'Ortaya Hizala (Dikey)',
+    alignBottom: 'Alta Hizala',
+    
+    // Uyarılar
+    selectTwoObjects: 'Boolean işlemi için tam olarak 2 nesne seçin',
+    operationOnlyForShapes: 'İşlem yalnızca temel şekiller için desteklenir',
+    emptyResult: 'İşlem sonucu boş',
+    selectMinTwoGroup: 'Gruplamak için en az 2 nesne seçin',
+    selectGroup: 'Grubu çözmek için bir grup seçin',
+    selectMinTwoAlign: 'Hizalamak için en az 2 nesne seçin',
+    
+    // Durum çubuğu
+    tool: 'Araç',
+    objects: 'Nesneler',
+    selected: 'Seçili',
+    mouseWheelZoom: 'Fare tekerleği: Yakınlaştır',
+    altDragPan: 'Alt+Sürükle: Kaydır',
+    
+    // Varsayılan metin
+    defaultText: 'Metin',
+    
+    // Dil
+    language: 'Dil',
+    
+    // Sayfa ayarları
+    page: 'Sayfa',
+    pageSize: 'Sayfa Boyutu',
+    portrait: 'Dikey',
+    landscape: 'Yatay',
+    custom: 'Özel',
+    width: 'Genişlik',
+    height: 'Yükseklik',
+    fitPageToView: 'Görünüme Sığdır',
+    zoom100: 'Yakınlaştırma %100',
+    alignToPage: 'Sayfaya Hizala',
+    
+    // İçe aktarma
+    importImage: 'İçe Aktar',
+    importImageTitle: 'Resim içe aktar (PNG, JPEG, GIF, WebP, BMP, SVG)',
+    
+    // Özellikler Paneli
+    properties: 'Özellikler',
+    selectObject: 'Düzenlemek için bir nesne seçin',
+    position: 'Konum',
+    size: 'Boyut',
+    transform: 'Dönüşüm',
+    angle: 'Açı',
+    opacity: 'Opaklık',
+    radius: 'Yarıçap',
+    transparent: 'Saydam',
+    font: 'Yazı Tipi',
+    fontSize: 'Boyut',
+    textAlign: 'Hizalama',
+  },
+  ru: {
+    // Инструменты
+    tools: 'Инструменты',
+    select: 'Выделение',
+    pan: 'Перемещение холста',
+    brush: 'Кисть',
+    eraser: 'Ластик',
+    
+    // Фигуры
+    shapes: 'Фигуры',
+    line: 'Линия',
+    rectangle: 'Прямоугольник',
+    circle: 'Круг',
+    triangle: 'Треугольник',
+    text: 'Текст',
+    textDoubleClick: 'Текст (Двойной клик для добавления)',
+    
+    // Профессиональные фигуры
+    proShapes: 'Про Фигуры',
+    star: 'Звезда',
+    polygon: 'Полигон',
+    hexagon: 'Шестиугольник',
+    ellipse: 'Эллипс',
+    arrow: 'Стрелка',
+    spiral: 'Спираль',
+    heart: 'Сердце',
+    roundedRect: 'Закруглённый прямоугольник',
+    diamond: 'Ромб',
+    cross: 'Крест',
+    arc: 'Дуга',
+    gear: 'Шестерня',
+    callout: 'Выноска',
+    
+    // Инструменты контуров/Безье
+    pathTools: 'Контуры',
+    penTool: 'Перо',
+    curvatureTool: 'Кривизна',
+    anchorPointTool: 'Опорные точки',
+    directSelectTool: 'Прямое выделение',
+    
+    // Цвета
+    colors: 'Цвета',
+    fill: 'Заливка',
+    stroke: 'Обводка',
+    clickFillRightClickStroke: 'Клик - заливка, ПКМ - обводка',
+    
+    // Обводка
+    strokeWidth: 'Обводка',
+    
+    // Настройки текста
+    textSettings: 'Текст',
+    
+    // Масштаб
+    zoom: 'Масштаб',
+    zoomIn: 'Увеличить',
+    zoomOut: 'Уменьшить',
+    resetZoom: 'Сбросить',
+    
+    // Привязки
+    snapping: 'Привязки',
+    grid: 'Сетка',
+    toGrid: 'К сетке',
+    toObjects: 'К объектам',
+    
+    // Действия
+    history: 'История',
+    undo: 'Отменить',
+    redo: 'Повторить',
+    
+    // Редактирование
+    editing: 'Редактирование',
+    copy: 'Копировать',
+    paste: 'Вставить',
+    delete: 'Удалить',
+    
+    // Файл
+    file: 'Файл',
+    savePNG: 'PNG',
+    save: 'Сохранить',
+    open: 'Открыть',
+    clear: 'Очистить',
+    clearConfirm: 'Вы уверены, что хотите очистить холст?',
+    loadError: 'Ошибка загрузки файла: ',
+    saveError: 'Ошибка сохранения файла: ',
+    
+    // Слои
+    layers: 'Слои',
+    noObjects: 'Нет объектов',
+    enterNewName: 'Введите новое имя слоя:',
+    hide: 'Скрыть',
+    show: 'Показать',
+    lock: 'Заблокировать',
+    unlock: 'Разблокировать',
+    up: 'Вверх',
+    down: 'Вниз',
+    deleteLayer: 'Удалить',
+    toFront: 'На передний план',
+    toBack: 'На задний план',
+    doubleClickRename: 'Двойной клик для переименования',
+    
+    // Boolean операции
+    combine: 'Комбинирование',
+    union: 'Объединить',
+    subtract: 'Вычесть',
+    intersect: 'Пересечение',
+    
+    // Группировка
+    grouping: 'Группировка',
+    group: 'Сгруппировать',
+    ungroup: 'Разгруппировать',
+    
+    // Выравнивание
+    alignment: 'Выравнивание',
+    alignLeft: 'По левому краю',
+    alignCenter: 'По центру (горизонтально)',
+    alignRight: 'По правому краю',
+    alignTop: 'По верхнему краю',
+    alignMiddle: 'По центру (вертикально)',
+    alignBottom: 'По нижнему краю',
+    
+    // Уведомления
+    selectTwoObjects: 'Выберите ровно 2 объекта для Boolean операции',
+    operationOnlyForShapes: 'Операция поддерживается только для базовых фигур',
+    emptyResult: 'Результат операции пуст',
+    selectMinTwoGroup: 'Выберите минимум 2 объекта для группировки',
+    selectGroup: 'Выберите группу для разгруппировки',
+    selectMinTwoAlign: 'Выберите минимум 2 объекта для выравнивания',
+    
+    // Строка состояния
+    tool: 'Инструмент',
+    objects: 'Объекты',
+    selected: 'Выбрано',
+    mouseWheelZoom: 'Колесо мыши: Масштаб',
+    altDragPan: 'Alt+Перетаскивание: Перемещение',
+    
+    // Текст по умолчанию
+    defaultText: 'Текст',
+    
+    // Язык
+    language: 'Язык',
+    
+    // Настройки страницы
+    page: 'Страница',
+    pageSize: 'Размер страницы',
+    portrait: 'Портрет',
+    landscape: 'Альбом',
+    custom: 'Пользовательский',
+    width: 'Ширина',
+    height: 'Высота',
+    fitPageToView: 'Вписать в окно',
+    zoom100: 'Масштаб 100%',
+    alignToPage: 'Выровнять по странице',
+    
+    // Импорт
+    importImage: 'Импорт',
+    importImageTitle: 'Импорт изображения (PNG, JPEG, GIF, WebP, BMP, SVG)',
+    
+    // Панель свойств
+    properties: 'Свойства',
+    selectObject: 'Выберите объект для редактирования',
+    position: 'Позиция',
+    size: 'Размер',
+    transform: 'Трансформация',
+    angle: 'Угол',
+    opacity: 'Прозрачность',
+    radius: 'Радиус',
+    transparent: 'Прозрачный',
+    font: 'Шрифт',
+    fontSize: 'Размер',
+    textAlign: 'Выравнивание',
+  },
 };
 
-// Function to sync language with Avalonia backend (for Microsoft Store compatibility)
+// Function to sync language (no backend needed - localStorage handles persistence via zustand persist)
 const syncLanguageToBackend = async (lang) => {
-  try {
-    await fetch('/api/language', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ language: lang }),
-    });
-  } catch (error) {
-    // Silently fail - backend may not be available (e.g., in browser dev mode)
-  }
+  // No-op: language is persisted via zustand persist middleware to localStorage
+  // Keeping function to avoid breaking existing code
 };
 
-// Function to fetch initial language from Avalonia backend
+// Function to fetch initial language (no backend needed - localStorage handles persistence via zustand persist)
 const fetchLanguageFromBackend = async () => {
-  try {
-    const response = await fetch('/api/language');
-    if (response.ok) {
-      const data = await response.json();
-      if (data && SUPPORTED_LANGUAGES.includes(data.language)) {
-        return data.language;
-      }
-    }
-  } catch (error) {
-    // Silently fail - backend may not be available
-  }
+  // No-op: language is loaded via zustand persist middleware from localStorage
+  // Keeping function to avoid breaking existing code
   return null;
 };
 

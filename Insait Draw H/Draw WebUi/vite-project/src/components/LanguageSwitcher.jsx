@@ -18,6 +18,8 @@ export function LanguageSwitcher() {
         <option value="en">🇬🇧 English</option>
         <option value="uk">🇺🇦 Українська</option>
         <option value="de">🇩🇪 Deutsch</option>
+        <option value="tr">🇹🇷 Türkçe</option>
+        <option value="ru">🇷🇺 Русский</option>
       </select>
     </div>
   );

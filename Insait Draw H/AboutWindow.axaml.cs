@@ -1,6 +1,8 @@
+using System;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 
 namespace Insait_Draw_H;
 
@@ -10,6 +12,7 @@ public partial class AboutWindow : Window
     {
         InitializeComponent();
         UpdateTexts();
+        CheckFileAssociationStatus();
     }
 
     private void UpdateTexts()
@@ -35,6 +38,29 @@ public partial class AboutWindow : Window
         var closeButton = this.FindControl<Button>("CloseButton");
         if (closeButton != null)
             closeButton.Content = LanguageManager.GetText("close");
+        
+        var fileAssociationButton = this.FindControl<Button>("FileAssociationButton");
+        if (fileAssociationButton != null)
+            fileAssociationButton.Content = LanguageManager.GetText("registerFileAssociation");
+    }
+
+    private void CheckFileAssociationStatus()
+    {
+        var statusText = this.FindControl<TextBlock>("FileAssociationStatus");
+        var button = this.FindControl<Button>("FileAssociationButton");
+        
+        if (statusText == null || button == null) return;
+        
+        if (FileAssociationHelper.IsRegistered())
+        {
+            statusText.Text = LanguageManager.GetText("fileAssociationRegistered");
+            statusText.Foreground = new SolidColorBrush(Color.Parse("#4CAF50"));
+            button.Content = LanguageManager.GetText("reRegisterFileAssociation");
+        }
+        else
+        {
+            statusText.Text = "";
+        }
     }
 
     private void LogoPanel_OnPointerPressed(object? sender, PointerPressedEventArgs e)
@@ -44,6 +70,36 @@ public partial class AboutWindow : Window
             e.GetCurrentPoint(this).Properties.PointerUpdateKind == PointerUpdateKind.LeftButtonPressed)
         {
             BeginMoveDrag(e);
+        }
+    }
+
+    private void FileAssociationButton_OnClick(object? sender, RoutedEventArgs e)
+    {
+        var statusText = this.FindControl<TextBlock>("FileAssociationStatus");
+        var button = this.FindControl<Button>("FileAssociationButton");
+        
+        try
+        {
+            FileAssociationHelper.RegisterFileAssociation();
+            
+            if (statusText != null)
+            {
+                statusText.Text = LanguageManager.GetText("fileAssociationSuccess");
+                statusText.Foreground = new SolidColorBrush(Color.Parse("#4CAF50"));
+            }
+            
+            if (button != null)
+            {
+                button.Content = LanguageManager.GetText("reRegisterFileAssociation");
+            }
+        }
+        catch (Exception ex)
+        {
+            if (statusText != null)
+            {
+                statusText.Text = LanguageManager.GetText("fileAssociationError") + ": " + ex.Message;
+                statusText.Foreground = new SolidColorBrush(Color.Parse("#F44336"));
+            }
         }
     }
 

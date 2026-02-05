@@ -43,7 +43,13 @@
         <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
         <IncludeAllContentForSelfExtract>true</IncludeAllContentForSelfExtract>
         
-        <PublishReadyToRun>false</PublishReadyToRun>
+        <!-- ReadyToRun precompilation for faster startup (AOT-like but compatible with CEF) -->
+        <!-- Note: Full Native AOT is incompatible with CEF due to P/Invoke requirements -->
+        <PublishReadyToRun>true</PublishReadyToRun>
+        <PublishReadyToRunComposite>true</PublishReadyToRunComposite>
+        
+        <!-- Trimming disabled because JSON serialization requires reflection -->
+        <PublishTrimmed>false</PublishTrimmed>
         
         <!-- Custom publish output path -->
         <PublishDir>bin\Publish\</PublishDir>
@@ -76,14 +82,14 @@
     </ItemGroup>
 
     <ItemGroup>
-      <AvaloniaResource Include="Draw WebUi\vite-project\Icons\AppIcon2.png" />
+      <AvaloniaResource Include="Draw WebUi\vite-project\src\assets\AppIcon2.png" />
       <AvaloniaResource Include="Icons\**\*" />
     </ItemGroup>
 
     <!-- Включаємо React dist файли як embedded resources для включення в exe -->
     <ItemGroup>
       <!-- React/Vite build output embedded into exe -->
-      <EmbeddedResource Include="Draw WebUi\vite-project\dist\**\*" Exclude="Draw WebUi\vite-project\dist\favicon.png;Draw WebUi\vite-project\dist\vite.svg">
+      <EmbeddedResource Include="Draw WebUi\vite-project\dist\**\*" Exclude="Draw WebUi\vite-project\dist\favicon.png;Draw WebUi\vite-project\dist\vite.svg;Draw WebUi\vite-project\dist\assets\AppIcon2.png">
         <LogicalName>Insait_Draw_H.wwwroot.%(RecursiveDir)%(Filename)%(Extension)</LogicalName>
       </EmbeddedResource>
 
@@ -96,7 +102,7 @@
     <!-- Also include wwwroot as Content for single-file self-extract -->
     <!-- In Debug we still want the files copied to output so the local server can serve them from disk. -->
     <ItemGroup Condition="'$(Configuration)' == 'Release' or '$(Configuration)' == 'Debug'">
-      <Content Include="Draw WebUi\vite-project\dist\**\*" Exclude="Draw WebUi\vite-project\dist\favicon.png;Draw WebUi\vite-project\dist\vite.svg">
+      <Content Include="Draw WebUi\vite-project\dist\**\*" Exclude="Draw WebUi\vite-project\dist\favicon.png;Draw WebUi\vite-project\dist\vite.svg;Draw WebUi\vite-project\dist\assets\AppIcon2.png">
         <Link>wwwroot\%(RecursiveDir)%(Filename)%(Extension)</Link>
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>

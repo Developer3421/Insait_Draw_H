@@ -45,6 +45,10 @@
   grid-template-columns: repeat(3, 1fr);
 }
 
+.pro-shapes-grid {
+  grid-template-columns: repeat(5, 1fr);
+}
+
 .tool-btn {
   width: 44px;
   height: 44px;
@@ -60,6 +64,16 @@
   padding: 0;
   flex-shrink: 0;
   color: #6B1FD6;
+}
+
+.tool-btn.pro-shape {
+  background: linear-gradient(135deg, #FFF8E1 0%, #FFE0B2 100%);
+  border-color: #FFB74D;
+}
+
+.tool-btn.pro-shape:hover {
+  background: linear-gradient(135deg, #FFE0B2 0%, #FFCC80 100%);
+  border-color: #FFA726;
 }
 
 .tool-btn:hover {

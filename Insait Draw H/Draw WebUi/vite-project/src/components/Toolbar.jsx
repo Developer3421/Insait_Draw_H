@@ -1,6 +1,6 @@
 import { useEditorStore, TOOLS } from '../stores/editorStore';
 import { useLanguageStore } from '../stores/languageStore';
-import { FabricImage } from 'fabric';
+import { FabricImage, loadSVGFromString, Group } from 'fabric';
 import './Toolbar.css';
 
 const PRESET_COLORS = [
@@ -80,16 +80,83 @@ export function Toolbar() {
   };
 
   const handleImportImage = () => {
+    if (!canvas) return;
+    
+    // Створюємо прихований file input для вибору файлів через браузерний діалог
     const input = document.createElement('input');
     input.type = 'file';
-    input.accept = 'image/png,image/jpeg,image/jpg,image/gif,image/webp,image/bmp,image/svg+xml';
+    input.accept = 'image/*,.svg';
+    input.style.display = 'none';
+    
     input.onchange = async (e) => {
-      const file = e.target.files[0];
-      if (!file || !canvas) return;
+      const file = e.target.files?.[0];
+      if (!file) return;
       
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        try {
+      try {
+        const fileName = file.name || '';
+        const isSvg = fileName.toLowerCase().endsWith('.svg') || file.type === 'image/svg+xml';
+        
+        if (isSvg) {
+          // Імпорт SVG як векторного об'єкта
+          try {
+            const svgString = await file.text();
+            
+            // Завантажуємо SVG як векторний об'єкт
+            const { objects, options } = await loadSVGFromString(svgString);
+            
+            if (objects && objects.length > 0) {
+              // Групуємо всі об'єкти SVG
+              const svgGroup = objects.length === 1 ? objects[0] : new Group(objects);
+              
+              svgGroup.set({
+                left: 100,
+                top: 100,
+              });
+              
+              // Scale down if too large
+              const maxSize = 800;
+              const svgWidth = svgGroup.width || 100;
+              const svgHeight = svgGroup.height || 100;
+              if (svgWidth > maxSize || svgHeight > maxSize) {
+                const scale = Math.min(maxSize / svgWidth, maxSize / svgHeight);
+                svgGroup.scale(scale);
+              }
+              
+              canvas.add(svgGroup);
+              canvas.setActiveObject(svgGroup);
+              canvas.requestRenderAll();
+              
+              // Add to layers
+              const { addLayer } = useEditorStore.getState();
+              addLayer(svgGroup);
+            }
+          } catch (svgErr) {
+            console.error('Error loading SVG as vector, falling back to image:', svgErr);
+            // Fallback: завантажуємо SVG як зображення
+            await loadAsImage(file);
+          }
+        } else {
+          // Завантаження як растрове зображення
+          await loadAsImage(file);
+        }
+      } catch (err) {
+        console.error('Error importing image:', err);
+      }
+      
+      // Очищаємо input
+      document.body.removeChild(input);
+    };
+    
+    async function loadAsImage(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const dataUrl = e.target?.result;
+          if (!dataUrl) {
+            reject(new Error('Failed to read file'));
+            return;
+          }
+          
           const imgElement = new Image();
           imgElement.onload = async () => {
             const fabricImage = new FabricImage(imgElement, {
@@ -111,14 +178,20 @@ export function Toolbar() {
             // Add to layers
             const { addLayer } = useEditorStore.getState();
             addLayer(fabricImage);
+            resolve();
           };
-          imgElement.src = event.target.result;
-        } catch (err) {
-          console.error('Error importing image:', err);
-        }
-      };
-      reader.readAsDataURL(file);
-    };
+          imgElement.onerror = (err) => {
+            console.error('Error loading image:', err);
+            reject(err);
+          };
+          imgElement.src = dataUrl;
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+    }
+    
+    document.body.appendChild(input);
     input.click();
   };
 
@@ -171,6 +244,13 @@ export function Toolbar() {
             📏
           </button>
           <button
+            className={`tool-btn ${activeTool === TOOLS.ARROW ? 'active' : ''}`}
+            onClick={() => setActiveTool(TOOLS.ARROW)}
+            title={t('arrow') || 'Arrow'}
+          >
+            ➡️
+          </button>
+          <button
             className={`tool-btn ${activeTool === TOOLS.RECTANGLE ? 'active' : ''}`}
             onClick={() => setActiveTool(TOOLS.RECTANGLE)}
             title={`${t('rectangle')} (R)`}
@@ -178,11 +258,25 @@ export function Toolbar() {
             ⬜
           </button>
           <button
+            className={`tool-btn ${activeTool === TOOLS.ROUNDED_RECT ? 'active' : ''}`}
+            onClick={() => setActiveTool(TOOLS.ROUNDED_RECT)}
+            title={t('roundedRect') || 'Rounded Rectangle'}
+          >
+            ▢
+          </button>
+          <button
             className={`tool-btn ${activeTool === TOOLS.CIRCLE ? 'active' : ''}`}
             onClick={() => setActiveTool(TOOLS.CIRCLE)}
             title={`${t('circle')} (C)`}
           >
             ⭕
+          </button>
+          <button
+            className={`tool-btn ${activeTool === TOOLS.ELLIPSE ? 'active' : ''}`}
+            onClick={() => setActiveTool(TOOLS.ELLIPSE)}
+            title={t('ellipse') || 'Ellipse'}
+          >
+            ⬭
           </button>
           <button
             className={`tool-btn ${activeTool === TOOLS.TRIANGLE ? 'active' : ''}`}
@@ -204,6 +298,83 @@ export function Toolbar() {
             title={t('importImageTitle')}
           >
             📥
+          </button>
+        </div>
+      </div>
+
+      {/* Pro Shapes - Professional drawing shapes */}
+      <div className="tool-group">
+        <span className="group-label">{t('proShapes') || 'Pro Shapes'}</span>
+        <div className="tools-grid shapes-grid">
+          <button
+            className={`tool-btn ${activeTool === TOOLS.STAR ? 'active' : ''}`}
+            onClick={() => setActiveTool(TOOLS.STAR)}
+            title={t('star') || 'Star (5 points)'}
+          >
+            ⭐
+          </button>
+          <button
+            className={`tool-btn ${activeTool === TOOLS.POLYGON ? 'active' : ''}`}
+            onClick={() => setActiveTool(TOOLS.POLYGON)}
+            title={t('polygon') || 'Polygon (6 sides)'}
+          >
+            ⬡
+          </button>
+          <button
+            className={`tool-btn ${activeTool === TOOLS.HEXAGON ? 'active' : ''}`}
+            onClick={() => setActiveTool(TOOLS.HEXAGON)}
+            title={t('hexagon') || 'Hexagon'}
+          >
+            ⎔
+          </button>
+          <button
+            className={`tool-btn ${activeTool === TOOLS.DIAMOND ? 'active' : ''}`}
+            onClick={() => setActiveTool(TOOLS.DIAMOND)}
+            title={t('diamond') || 'Diamond / Rhombus'}
+          >
+            ◇
+          </button>
+          <button
+            className={`tool-btn ${activeTool === TOOLS.HEART ? 'active' : ''}`}
+            onClick={() => setActiveTool(TOOLS.HEART)}
+            title={t('heart') || 'Heart'}
+          >
+            ❤️
+          </button>
+          <button
+            className={`tool-btn ${activeTool === TOOLS.SPIRAL ? 'active' : ''}`}
+            onClick={() => setActiveTool(TOOLS.SPIRAL)}
+            title={t('spiral') || 'Spiral'}
+          >
+            🌀
+          </button>
+          <button
+            className={`tool-btn ${activeTool === TOOLS.CROSS ? 'active' : ''}`}
+            onClick={() => setActiveTool(TOOLS.CROSS)}
+            title={t('cross') || 'Cross / Plus'}
+          >
+            ✚
+          </button>
+          <button
+            className={`tool-btn ${activeTool === TOOLS.ARC ? 'active' : ''}`}
+            onClick={() => setActiveTool(TOOLS.ARC)}
+            title={t('arc') || 'Arc'}
+          >
+            ⌒
+          </button>
+          <button
+            className={`tool-btn ${activeTool === TOOLS.GEAR ? 'active' : ''}`}
+            onClick={() => setActiveTool(TOOLS.GEAR)}
+            title={t('gear') || 'Gear / Cog'}
+          >
+            ⚙️
+          </button>
+          <button
+            className={`tool-btn ${activeTool === TOOLS.CALLOUT ? 'active' : ''}`}
+            onClick={() => setActiveTool(TOOLS.CALLOUT)}
+            title={t('callout') || 'Callout / Speech Bubble'}
+          >
+            💬
           </button>
         </div>
       </div>

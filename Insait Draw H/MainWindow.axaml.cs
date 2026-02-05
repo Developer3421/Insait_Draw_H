@@ -1,11 +1,8 @@
 using System;
 using System.IO;
 using System.Net;
-using System.Net.Security;
 using System.Net.Sockets;
 using System.Reflection;
-using System.Security.Cryptography;
-using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -27,14 +24,19 @@ public partial class MainWindow : Window
     private TcpListener? _tcpListener;
     private CancellationTokenSource? _serverCts;
     private int _serverPort = 8765;
-    private X509Certificate2? _certificate;
     private DispatcherTimer? _loadingTimer;
     private int _loadingProgress = 0;
+    private string? _pendingFileToOpen; // Файл для відкриття через асоціацію файлів
+    private bool _fileAssociationRegistered = false; // Чи вже зареєстрована асоціація
 
     public MainWindow()
     {
         InitializeComponent();
         UpdateLoadingScreenTexts();
+        
+        // Перевіряємо чи є файл для відкриття через аргументи командного рядка
+        CheckPendingFileFromArgs();
+        
         InitializeWebView();
     }
 
@@ -42,6 +44,38 @@ public partial class MainWindow : Window
     {
         base.OnClosed(e);
         StopLocalServer();
+    }
+
+    /// <summary>
+    /// Перевіряє чи є файл для відкриття через аргументи командного рядка
+    /// </summary>
+    private void CheckPendingFileFromArgs()
+    {
+        var args = Program.CommandLineArgs;
+        if (args.Length > 0)
+        {
+            var filePath = args[0];
+            if (!string.IsNullOrEmpty(filePath) && 
+                filePath.EndsWith(".insd", StringComparison.OrdinalIgnoreCase) && 
+                File.Exists(filePath))
+            {
+                _pendingFileToOpen = filePath;
+                System.Diagnostics.Debug.WriteLine($"[FileOpen] Pending file to open: {filePath}");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Реєструє асоціацію файлів після першого збереження .insd файлу
+    /// </summary>
+    private void RegisterFileAssociationOnFirstSave()
+    {
+        if (!_fileAssociationRegistered)
+        {
+            _fileAssociationRegistered = true;
+            FileAssociationHelper.RegisterFileAssociation();
+            System.Diagnostics.Debug.WriteLine("[FileAssociation] Registered after first save");
+        }
     }
 
     private void TitleBar_OnPointerPressed(object? sender, PointerPressedEventArgs e)
@@ -86,6 +120,7 @@ public partial class MainWindow : Window
         var dialog = new LanguageSelectionWindow();
         await dialog.ShowDialog(this);
     }
+
 
     private void UpdateLoadingScreenTexts()
     {
@@ -240,7 +275,7 @@ public partial class MainWindow : Window
             host.Content = _webView;
             
             // Навігуємо на локальний HTTPS сервер
-            _webView.Address = $"https://127.0.0.1:{_serverPort}/";
+            _webView.Address = $"http://127.0.0.1:{_serverPort}/";
         }
         catch (Exception ex)
         {
@@ -260,23 +295,22 @@ public partial class MainWindow : Window
     {
         _serverCts = new CancellationTokenSource();
         
-        // Генеруємо самопідписаний SSL сертифікат
-        _certificate = GenerateSelfSignedCertificate();
-        
         // Шукаємо вільний порт
         for (int port = 8765; port < 9000; port++)
         {
             try
             {
-                // IPAddress.Any дозволяє приймати з'єднання з будь-якого мережевого інтерфейсу
-                _tcpListener = new TcpListener(IPAddress.Any, port);
+                // Використовуємо IPAddress.Loopback (127.0.0.1) для безпеки та уникнення проблем з firewall
+                _tcpListener = new TcpListener(IPAddress.Loopback, port);
                 _tcpListener.Start();
                 _serverPort = port;
+                System.Diagnostics.Debug.WriteLine($"[Server] Started HTTP server on port {port}");
                 break;
             }
-            catch (SocketException)
+            catch (SocketException ex)
             {
                 // Порт зайнятий, пробуємо наступний
+                System.Diagnostics.Debug.WriteLine($"[Server] Port {port} unavailable: {ex.Message}");
                 continue;
             }
         }
@@ -307,47 +341,6 @@ public partial class MainWindow : Window
         }, _serverCts.Token);
     }
 
-    private static X509Certificate2 GenerateSelfSignedCertificate()
-    {
-        using var rsa = RSA.Create(2048);
-        var request = new CertificateRequest(
-            "CN=localhost",
-            rsa,
-            HashAlgorithmName.SHA256,
-            RSASignaturePadding.Pkcs1);
-
-        // Додаємо розширення для самопідписаного сертифіката
-        request.CertificateExtensions.Add(
-            new X509BasicConstraintsExtension(false, false, 0, true));
-        request.CertificateExtensions.Add(
-            new X509KeyUsageExtension(
-                X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.KeyEncipherment,
-                true));
-        request.CertificateExtensions.Add(
-            new X509EnhancedKeyUsageExtension(
-                new OidCollection { new Oid("1.3.6.1.5.5.7.3.1") }, // Server Authentication
-                true));
-
-        // Subject Alternative Names (SAN)
-        var sanBuilder = new SubjectAlternativeNameBuilder();
-        sanBuilder.AddIpAddress(IPAddress.Parse("127.0.0.1"));
-        sanBuilder.AddDnsName("localhost");
-        request.CertificateExtensions.Add(sanBuilder.Build());
-
-        var certificate = request.CreateSelfSigned(
-            DateTimeOffset.Now.AddDays(-1),
-            DateTimeOffset.Now.AddYears(10));
-
-        // Експортуємо та імпортуємо з приватним ключем для Windows
-        var pfxBytes = certificate.Export(X509ContentType.Pfx);
-#pragma warning disable SYSLIB0057
-        return new X509Certificate2(
-            pfxBytes,
-            (string?)null,
-            X509KeyStorageFlags.Exportable | X509KeyStorageFlags.PersistKeySet);
-#pragma warning restore SYSLIB0057
-    }
-
     private void StopLocalServer()
     {
         _serverCts?.Cancel();
@@ -359,14 +352,9 @@ public partial class MainWindow : Window
         try
         {
             using var networkStream = client.GetStream();
-            using var sslStream = new SslStream(networkStream, false);
             
-            // Виконуємо SSL handshake
-            await sslStream.AuthenticateAsServerAsync(_certificate!, false, 
-                System.Security.Authentication.SslProtocols.Tls12 | System.Security.Authentication.SslProtocols.Tls13, 
-                false);
-            
-            using var reader = new StreamReader(sslStream, Encoding.UTF8, leaveOpen: true);
+            // Використовуємо HTTP без SSL для спрощення та кращої сумісності
+            using var reader = new StreamReader(networkStream, Encoding.UTF8, leaveOpen: true);
             
             // Читаємо HTTP запит
             var requestLine = await reader.ReadLineAsync();
@@ -411,8 +399,8 @@ public partial class MainWindow : Window
                                  "Access-Control-Allow-Origin: *\r\n" +
                                  "\r\n";
                 var langHeaderBytes = Encoding.UTF8.GetBytes(langHeader);
-                await sslStream.WriteAsync(langHeaderBytes, 0, langHeaderBytes.Length);
-                await sslStream.WriteAsync(langBody, 0, langBody.Length);
+                await networkStream.WriteAsync(langHeaderBytes, 0, langHeaderBytes.Length);
+                await networkStream.WriteAsync(langBody, 0, langBody.Length);
                 return;
             }
             
@@ -431,7 +419,7 @@ public partial class MainWindow : Window
                         if (langData != null && !string.IsNullOrEmpty(langData.Language))
                         {
                             // Валідуємо мову
-                            var validLanguages = new[] { "en", "uk", "de" };
+                            var validLanguages = new[] { "en", "uk", "de", "tr", "ru" };
                             if (Array.IndexOf(validLanguages, langData.Language) >= 0)
                             {
                                 LanguageManager.CurrentLanguage = langData.Language;
@@ -452,8 +440,324 @@ public partial class MainWindow : Window
                                "Access-Control-Allow-Origin: *\r\n" +
                                "\r\n";
                 var okHeaderBytes = Encoding.UTF8.GetBytes(okHeader);
-                await sslStream.WriteAsync(okHeaderBytes, 0, okHeaderBytes.Length);
-                await sslStream.WriteAsync(okBody, 0, okBody.Length);
+                await networkStream.WriteAsync(okHeaderBytes, 0, okHeaderBytes.Length);
+                await networkStream.WriteAsync(okBody, 0, okBody.Length);
+                return;
+            }
+            
+            // API endpoint для отримання файлу, що потрібно відкрити (через асоціацію файлів)
+            if (urlPath == "/api/pending-file" && method == "GET")
+            {
+                string jsonResponse;
+                if (!string.IsNullOrEmpty(_pendingFileToOpen) && File.Exists(_pendingFileToOpen))
+                {
+                    try
+                    {
+                        var fileBytes = File.ReadAllBytes(_pendingFileToOpen);
+                        var base64Content = Convert.ToBase64String(fileBytes);
+                        var fileName = Path.GetFileName(_pendingFileToOpen);
+                        jsonResponse = System.Text.Json.JsonSerializer.Serialize(new { 
+                            success = true, 
+                            fileName = fileName, 
+                            content = base64Content,
+                            fullPath = _pendingFileToOpen
+                        });
+                        
+                        // Очищаємо pending файл після відправки
+                        _pendingFileToOpen = null;
+                    }
+                    catch (Exception ex)
+                    {
+                        jsonResponse = System.Text.Json.JsonSerializer.Serialize(new { success = false, error = ex.Message });
+                    }
+                }
+                else
+                {
+                    jsonResponse = System.Text.Json.JsonSerializer.Serialize(new { success = false, noPendingFile = true });
+                }
+                
+                var pendingFileResponseBytes = Encoding.UTF8.GetBytes(jsonResponse);
+                var pendingFileHeader = "HTTP/1.1 200 OK\r\n" +
+                               "Content-Type: application/json\r\n" +
+                               $"Content-Length: {pendingFileResponseBytes.Length}\r\n" +
+                               "Connection: close\r\n" +
+                               "Access-Control-Allow-Origin: *\r\n" +
+                               "\r\n";
+                var pendingFileHeaderBytes = Encoding.UTF8.GetBytes(pendingFileHeader);
+                await networkStream.WriteAsync(pendingFileHeaderBytes, 0, pendingFileHeaderBytes.Length);
+                await networkStream.WriteAsync(pendingFileResponseBytes, 0, pendingFileResponseBytes.Length);
+                return;
+            }
+            
+            // API endpoint для відкриття файлу проєкту через нативний діалог
+            if (urlPath == "/api/open-file" && method == "POST")
+            {
+                string? fileContent = null;
+                string? fileName = null;
+                string? errorMessage = null;
+                
+                // Зчитуємо тіло запиту для отримання типу діалогу
+                string dialogType = "project"; // за замовчуванням
+                if (contentLength > 0)
+                {
+                    var bodyBuffer = new char[contentLength];
+                    await reader.ReadBlockAsync(bodyBuffer, 0, contentLength);
+                    var body = new string(bodyBuffer);
+                    
+                    try
+                    {
+                        var requestData = System.Text.Json.JsonSerializer.Deserialize<OpenFileRequest>(body);
+                        if (requestData != null && !string.IsNullOrEmpty(requestData.Type))
+                        {
+                            dialogType = requestData.Type;
+                        }
+                    }
+                    catch
+                    {
+                        // Ignore parsing errors
+                    }
+                }
+                
+                try
+                {
+                    await Dispatcher.UIThread.InvokeAsync(async () =>
+                    {
+                        var dialog = new Avalonia.Platform.Storage.FilePickerOpenOptions
+                        {
+                            AllowMultiple = false,
+                        };
+                        
+                        var lang = LanguageManager.CurrentLanguage;
+                        
+                        if (dialogType == "image")
+                        {
+                            dialog.Title = lang switch
+                            {
+                                "uk" => "Імпорт зображення",
+                                "de" => "Bild importieren",
+                                "tr" => "Resim İçe Aktar",
+                                "ru" => "Импорт изображения",
+                                _ => "Import Image"
+                            };
+                            dialog.FileTypeFilter = new[]
+                            {
+                                new Avalonia.Platform.Storage.FilePickerFileType(lang switch
+                                {
+                                    "uk" => "Зображення",
+                                    "de" => "Bilder",
+                                    "tr" => "Resimler",
+                                    "ru" => "Изображения",
+                                    _ => "Images"
+                                })
+                                {
+                                    Patterns = new[] { "*.png", "*.jpg", "*.jpeg", "*.gif", "*.webp", "*.bmp", "*.svg" },
+                                    MimeTypes = new[] { "image/*" }
+                                },
+                                new Avalonia.Platform.Storage.FilePickerFileType(lang switch
+                                {
+                                    "uk" => "Усі файли",
+                                    "de" => "Alle Dateien",
+                                    "tr" => "Tüm Dosyalar",
+                                    "ru" => "Все файлы",
+                                    _ => "All Files"
+                                })
+                                {
+                                    Patterns = new[] { "*.*" }
+                                }
+                            };
+                        }
+                        else
+                        {
+                            dialog.Title = lang switch
+                            {
+                                "uk" => "Відкрити проєкт",
+                                "de" => "Projekt öffnen",
+                                "tr" => "Projeyi Aç",
+                                "ru" => "Открыть проект",
+                                _ => "Open Project"
+                            };
+                            dialog.FileTypeFilter = new[]
+                            {
+                                new Avalonia.Platform.Storage.FilePickerFileType(lang switch
+                                {
+                                    "uk" => "Проєкти Insait Draw",
+                                    "de" => "Insait Draw Projekte",
+                                    "tr" => "Insait Draw Projeleri",
+                                    "ru" => "Проекты Insait Draw",
+                                    _ => "Insait Draw Projects"
+                                })
+                                {
+                                    Patterns = new[] { "*.insd" }
+                                },
+                                new Avalonia.Platform.Storage.FilePickerFileType("JSON")
+                                {
+                                    Patterns = new[] { "*.json" },
+                                    MimeTypes = new[] { "application/json" }
+                                },
+                                new Avalonia.Platform.Storage.FilePickerFileType(lang switch
+                                {
+                                    "uk" => "Усі файли",
+                                    "de" => "Alle Dateien",
+                                    "tr" => "Tüm Dosyalar",
+                                    "ru" => "Все файлы",
+                                    _ => "All Files"
+                                })
+                                {
+                                    Patterns = new[] { "*.*" }
+                                }
+                            };
+                        }
+                        
+                        var storageProvider = this.StorageProvider;
+                        var result = await storageProvider.OpenFilePickerAsync(dialog);
+                        
+                        if (result != null && result.Count > 0)
+                        {
+                            var file = result[0];
+                            fileName = file.Name;
+                            
+                            using var stream = await file.OpenReadAsync();
+                            
+                            if (dialogType == "image")
+                            {
+                                // Для зображень повертаємо base64
+                                using var memoryStream = new MemoryStream();
+                                await stream.CopyToAsync(memoryStream);
+                                var bytes = memoryStream.ToArray();
+                                var base64 = Convert.ToBase64String(bytes);
+                                var mimeType = GetMimeTypeFromExtension(Path.GetExtension(fileName));
+                                fileContent = $"data:{mimeType};base64,{base64}";
+                            }
+                            else
+                            {
+                                // Для проєктів повертаємо base64 (бо .insd - це ZIP)
+                                using var memoryStream = new MemoryStream();
+                                await stream.CopyToAsync(memoryStream);
+                                var bytes = memoryStream.ToArray();
+                                fileContent = Convert.ToBase64String(bytes);
+                            }
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    errorMessage = ex.Message;
+                }
+                
+                string jsonResponse;
+                if (errorMessage != null)
+                {
+                    jsonResponse = System.Text.Json.JsonSerializer.Serialize(new { success = false, error = errorMessage });
+                }
+                else if (fileContent != null)
+                {
+                    jsonResponse = System.Text.Json.JsonSerializer.Serialize(new { success = true, fileName, content = fileContent });
+                }
+                else
+                {
+                    jsonResponse = System.Text.Json.JsonSerializer.Serialize(new { success = false, cancelled = true });
+                }
+                
+                var openFileResponseBodyBytes = Encoding.UTF8.GetBytes(jsonResponse);
+                var openFileResponseHeader = "HTTP/1.1 200 OK\r\n" +
+                               "Content-Type: application/json\r\n" +
+                               $"Content-Length: {openFileResponseBodyBytes.Length}\r\n" +
+                               "Connection: close\r\n" +
+                               "Access-Control-Allow-Origin: *\r\n" +
+                               "\r\n";
+                var openFileResponseHeaderBytes = Encoding.UTF8.GetBytes(openFileResponseHeader);
+                await networkStream.WriteAsync(openFileResponseHeaderBytes, 0, openFileResponseHeaderBytes.Length);
+                await networkStream.WriteAsync(openFileResponseBodyBytes, 0, openFileResponseBodyBytes.Length);
+                return;
+            }
+            
+            // API endpoint для збереження файлу через нативний діалог
+            if (urlPath == "/api/save-file" && method == "POST")
+            {
+                string? savedPath = null;
+                string? errorMessage = null;
+                
+                try
+                {
+                    if (contentLength > 0)
+                    {
+                        var bodyBuffer = new char[contentLength];
+                        await reader.ReadBlockAsync(bodyBuffer, 0, contentLength);
+                        var body = new string(bodyBuffer);
+                        
+                        var saveRequest = System.Text.Json.JsonSerializer.Deserialize<SaveFileRequest>(body);
+                        if (saveRequest != null && !string.IsNullOrEmpty(saveRequest.Content))
+                        {
+                            await Dispatcher.UIThread.InvokeAsync(async () =>
+                            {
+                                var lang = LanguageManager.CurrentLanguage;
+                                var dialog = new Avalonia.Platform.Storage.FilePickerSaveOptions
+                                {
+                                    Title = lang == "uk" ? "Зберегти проєкт" : (lang == "de" ? "Projekt speichern" : "Save Project"),
+                                    SuggestedFileName = saveRequest.FileName ?? "insait-draw-project",
+                                    DefaultExtension = saveRequest.Extension ?? "insd",
+                                    FileTypeChoices = new[]
+                                    {
+                                        new Avalonia.Platform.Storage.FilePickerFileType(lang == "uk" ? "Проєкт Insait Draw" : (lang == "de" ? "Insait Draw Projekt" : "Insait Draw Project"))
+                                        {
+                                            Patterns = new[] { "*.insd" }
+                                        },
+                                        new Avalonia.Platform.Storage.FilePickerFileType(lang == "uk" ? "Усі файли" : (lang == "de" ? "Alle Dateien" : "All Files"))
+                                        {
+                                            Patterns = new[] { "*.*" }
+                                        }
+                                    }
+                                };
+                                
+                                var storageProvider = this.StorageProvider;
+                                var result = await storageProvider.SaveFilePickerAsync(dialog);
+                                
+                                if (result != null)
+                                {
+                                    var bytes = Convert.FromBase64String(saveRequest.Content);
+                                    using var stream = await result.OpenWriteAsync();
+                                    await stream.WriteAsync(bytes, 0, bytes.Length);
+                                    savedPath = result.Name;
+                                    
+                                    // Реєструємо асоціацію файлів після першого успішного збереження .insd
+                                    if (savedPath.EndsWith(".insd", StringComparison.OrdinalIgnoreCase))
+                                    {
+                                        RegisterFileAssociationOnFirstSave();
+                                    }
+                                }
+                            });
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    errorMessage = ex.Message;
+                }
+                
+                string jsonResponse;
+                if (errorMessage != null)
+                {
+                    jsonResponse = System.Text.Json.JsonSerializer.Serialize(new { success = false, error = errorMessage });
+                }
+                else if (savedPath != null)
+                {
+                    jsonResponse = System.Text.Json.JsonSerializer.Serialize(new { success = true, path = savedPath });
+                }
+                else
+                {
+                    jsonResponse = System.Text.Json.JsonSerializer.Serialize(new { success = false, cancelled = true });
+                }
+                
+                var saveFileResponseBodyBytes = Encoding.UTF8.GetBytes(jsonResponse);
+                var saveFileResponseHeader = "HTTP/1.1 200 OK\r\n" +
+                               "Content-Type: application/json\r\n" +
+                               $"Content-Length: {saveFileResponseBodyBytes.Length}\r\n" +
+                               "Connection: close\r\n" +
+                               "Access-Control-Allow-Origin: *\r\n" +
+                               "\r\n";
+                var saveFileResponseHeaderBytes = Encoding.UTF8.GetBytes(saveFileResponseHeader);
+                await networkStream.WriteAsync(saveFileResponseHeaderBytes, 0, saveFileResponseHeaderBytes.Length);
+                await networkStream.WriteAsync(saveFileResponseBodyBytes, 0, saveFileResponseBodyBytes.Length);
                 return;
             }
             
@@ -467,7 +771,7 @@ public partial class MainWindow : Window
                                  "Connection: close\r\n" +
                                  "\r\n";
                 var corsHeaderBytes = Encoding.UTF8.GetBytes(corsHeader);
-                await sslStream.WriteAsync(corsHeaderBytes, 0, corsHeaderBytes.Length);
+                await networkStream.WriteAsync(corsHeaderBytes, 0, corsHeaderBytes.Length);
                 return;
             }
             
@@ -526,8 +830,8 @@ public partial class MainWindow : Window
                                  "\r\n";
 
             var headerBytes = Encoding.UTF8.GetBytes(responseHeader);
-            await sslStream.WriteAsync(headerBytes, 0, headerBytes.Length);
-            await sslStream.WriteAsync(responseBody, 0, responseBody.Length);
+            await networkStream.WriteAsync(headerBytes, 0, headerBytes.Length);
+            await networkStream.WriteAsync(responseBody, 0, responseBody.Length);
         }
         catch
         {
@@ -616,5 +920,31 @@ public partial class MainWindow : Window
     private class LanguageRequest
     {
         public string Language { get; set; } = "en";
+    }
+    
+    private class OpenFileRequest
+    {
+        public string Type { get; set; } = "project"; // "project" or "image"
+    }
+    
+    private class SaveFileRequest
+    {
+        public string? FileName { get; set; }
+        public string? Extension { get; set; }
+        public string Content { get; set; } = "";
+    }
+    
+    private static string GetMimeTypeFromExtension(string extension)
+    {
+        return extension.ToLowerInvariant() switch
+        {
+            ".png" => "image/png",
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".gif" => "image/gif",
+            ".webp" => "image/webp",
+            ".bmp" => "image/bmp",
+            ".svg" => "image/svg+xml",
+            _ => "application/octet-stream"
+        };
     }
 }

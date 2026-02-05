@@ -75,6 +75,8 @@ public static class LanguageManager
         {
             "uk" => GetUkrainianText(key),
             "de" => GetGermanText(key),
+            "tr" => GetTurkishText(key),
+            "ru" => GetRussianText(key),
             _ => GetEnglishText(key)
         };
     }
@@ -92,6 +94,8 @@ public static class LanguageManager
             "english" => "English",
             "ukrainian" => "Ukrainian",
             "german" => "German",
+            "turkish" => "Turkish",
+            "russian" => "Russian",
             
             // Language Selection Window
             "languageSelection" => "Language Selection",
@@ -112,6 +116,13 @@ public static class LanguageManager
             "author" => "Author",
             "close" => "Close",
             "copyright" => "© 2026 Insait Draw H. All rights reserved.",
+            
+            // File Association
+            "registerFileAssociation" => "Register .insd File Association",
+            "reRegisterFileAssociation" => "Re-register File Association",
+            "fileAssociationRegistered" => "✓ File association is registered",
+            "fileAssociationSuccess" => "✓ File association registered successfully! .insd files will now open with Insait Draw H.",
+            "fileAssociationError" => "Error registering file association",
             
             // User Agreement Window
             "userAgreementTitle" => "User Agreement",
@@ -142,6 +153,8 @@ public static class LanguageManager
             "english" => "Англійська",
             "ukrainian" => "Українська",
             "german" => "Німецька",
+            "turkish" => "Турецька",
+            "russian" => "Російська",
             
             // Вікно вибору мови
             "languageSelection" => "Вибір мови",
@@ -162,6 +175,13 @@ public static class LanguageManager
             "author" => "Автор",
             "close" => "Закрити",
             "copyright" => "© 2026 Insait Draw H. Всі права захищені.",
+            
+            // Асоціація файлів
+            "registerFileAssociation" => "Зареєструвати асоціацію .insd",
+            "reRegisterFileAssociation" => "Перереєструвати асоціацію",
+            "fileAssociationRegistered" => "✓ Асоціацію файлів зареєстровано",
+            "fileAssociationSuccess" => "✓ Асоціацію файлів успішно зареєстровано! Файли .insd тепер відкриватимуться в Insait Draw H.",
+            "fileAssociationError" => "Помилка реєстрації асоціації файлів",
             
             // Вікно угоди користувача
             "userAgreementTitle" => "Угода користувача",
@@ -192,6 +212,8 @@ public static class LanguageManager
             "english" => "Englisch",
             "ukrainian" => "Ukrainisch",
             "german" => "Deutsch",
+            "turkish" => "Türkisch",
+            "russian" => "Russisch",
             
             // Sprachauswahlfenster
             "languageSelection" => "Sprachauswahl",
@@ -213,6 +235,13 @@ public static class LanguageManager
             "close" => "Schließen",
             "copyright" => "© 2026 Insait Draw H. Alle Rechte vorbehalten.",
             
+            // Dateizuordnung
+            "registerFileAssociation" => ".insd Dateizuordnung registrieren",
+            "reRegisterFileAssociation" => "Dateizuordnung neu registrieren",
+            "fileAssociationRegistered" => "✓ Dateizuordnung ist registriert",
+            "fileAssociationSuccess" => "✓ Dateizuordnung erfolgreich registriert! .insd Dateien werden jetzt mit Insait Draw H geöffnet.",
+            "fileAssociationError" => "Fehler bei der Registrierung der Dateizuordnung",
+            
             // Benutzervereinbarungsfenster
             "userAgreementTitle" => "Benutzervereinbarung",
             "privacyAndTerms" => "Datenschutz und Nutzungsbedingungen",
@@ -224,6 +253,124 @@ public static class LanguageManager
             "acceptanceOfTermsText" => "Durch die Nutzung von Insait Draw H bestätigen Sie, dass Sie diese Bedingungen gelesen und verstanden haben. Der Autor haftet nicht für direkte, indirekte, zufällige oder Folgeschäden, die aus der Nutzung dieser Software entstehen.",
             "iUnderstand" => "Ich verstehe",
             "authorCopyright" => "© 2026 Oleh Kurylo. Alle Rechte vorbehalten.",
+            
+            _ => key
+        };
+    }
+
+    private static string GetTurkishText(string key)
+    {
+        return key switch
+        {
+            // Ana pencere
+            "about" => "Hakkında",
+            "userAgreement" => "Kullanıcı Sözleşmesi",
+            "language" => "Dil",
+            
+            // Dil adları
+            "english" => "İngilizce",
+            "ukrainian" => "Ukraynaca",
+            "german" => "Almanca",
+            "turkish" => "Türkçe",
+            "russian" => "Rusça",
+            
+            // Dil seçim penceresi
+            "languageSelection" => "Dil Seçimi",
+            "selectInterfaceLanguage" => "Arayüz dilini seçin",
+            
+            // Yükleme Ekranı
+            "loadingEditor" => "Editör yükleniyor...",
+            "loadingInitializing" => "Çalışma alanı başlatılıyor...",
+            "loadingAlmostReady" => "Neredeyse hazır...",
+            "loadingFeature1" => "✓ Profesyonel vektör grafik düzenleme",
+            "loadingFeature2" => "✓ Bezier eğrileri ve yol araçları",
+            "loadingFeature3" => "✓ Katmanlar ve nesne yönetimi",
+            
+            // Hakkında Penceresi
+            "aboutTitle" => "Insait Draw H Hakkında",
+            "version" => "Sürüm",
+            "description" => "İllüstrasyonlar, tasarımlar ve sanat eserleri oluşturmak için sezgisel bir arayüze sahip modern bir vektör grafik düzenleyicisi.",
+            "author" => "Yazar",
+            "close" => "Kapat",
+            "copyright" => "© 2026 Insait Draw H. Tüm hakları saklıdır.",
+            
+            // Dosya İlişkilendirmesi
+            "registerFileAssociation" => ".insd Dosya İlişkilendirmesini Kaydet",
+            "reRegisterFileAssociation" => "Dosya İlişkilendirmesini Yeniden Kaydet",
+            "fileAssociationRegistered" => "✓ Dosya ilişkilendirmesi kayıtlı",
+            "fileAssociationSuccess" => "✓ Dosya ilişkilendirmesi başarıyla kaydedildi! .insd dosyaları artık Insait Draw H ile açılacak.",
+            "fileAssociationError" => "Dosya ilişkilendirmesi kayıt hatası",
+            
+            // Kullanıcı Sözleşmesi Penceresi
+            "userAgreementTitle" => "Kullanıcı Sözleşmesi",
+            "privacyAndTerms" => "Gizlilik ve Kullanım Koşulları",
+            "localDataStorage" => "Yerel Veri Depolama",
+            "localDataStorageText" => "Projeler, ayarlar ve tercihler dahil tüm verileriniz bilgisayarınızda yerel olarak depolanır. Hiçbir veri harici sunuculara veya bulut hizmetlerine aktarılmaz. Yaratıcı çalışmanız tamamen sizin kontrolünüzde ve cihazınızda kalır.",
+            "providedAsIs" => "'Olduğu Gibi' Sağlanır",
+            "providedAsIsText" => "Bu uygulama açık veya zımni herhangi bir garanti olmaksızın 'olduğu gibi' sağlanmaktadır. Yazar, yazılımın hatasız veya kesintisiz olacağını garanti etmez. Bu yazılımın kullanımı kendi sorumluluğunuzdadır.",
+            "acceptanceOfTerms" => "Koşulların Kabulü",
+            "acceptanceOfTermsText" => "Insait Draw H'yi kullanarak, bu koşulları okuduğunuzu ve anladığınızı kabul etmiş olursunuz. Yazar, bu yazılımın kullanımından kaynaklanan doğrudan, dolaylı, arızi veya sonuç olarak ortaya çıkan zararlardan sorumlu tutulamaz.",
+            "iUnderstand" => "Anladım",
+            "authorCopyright" => "© 2026 Oleh Kurylo. Tüm hakları saklıdır.",
+            
+            _ => key
+        };
+    }
+
+    private static string GetRussianText(string key)
+    {
+        return key switch
+        {
+            // Главное окно
+            "about" => "О программе",
+            "userAgreement" => "Пользовательское соглашение",
+            "language" => "Язык",
+            
+            // Названия языков
+            "english" => "Английский",
+            "ukrainian" => "Украинский",
+            "german" => "Немецкий",
+            "turkish" => "Турецкий",
+            "russian" => "Русский",
+            
+            // Окно выбора языка
+            "languageSelection" => "Выбор языка",
+            "selectInterfaceLanguage" => "Выберите язык интерфейса",
+            
+            // Экран загрузки
+            "loadingEditor" => "Загрузка редактора...",
+            "loadingInitializing" => "Инициализация рабочего пространства...",
+            "loadingAlmostReady" => "Почти готово...",
+            "loadingFeature1" => "✓ Профессиональное редактирование векторной графики",
+            "loadingFeature2" => "✓ Кривые Безье и инструменты контуров",
+            "loadingFeature3" => "✓ Слои и управление объектами",
+            
+            // Окно "О программе"
+            "aboutTitle" => "Об Insait Draw H",
+            "version" => "Версия",
+            "description" => "Современный редактор векторной графики с интуитивным интерфейсом для создания иллюстраций, дизайнов и художественных работ.",
+            "author" => "Автор",
+            "close" => "Закрыть",
+            "copyright" => "© 2026 Insait Draw H. Все права защищены.",
+            
+            // Ассоциация файлов
+            "registerFileAssociation" => "Зарегистрировать ассоциацию .insd",
+            "reRegisterFileAssociation" => "Перерегистрировать ассоциацию",
+            "fileAssociationRegistered" => "✓ Ассоциация файлов зарегистрирована",
+            "fileAssociationSuccess" => "✓ Ассоциация файлов успешно зарегистрирована! Файлы .insd теперь будут открываться в Insait Draw H.",
+            "fileAssociationError" => "Ошибка регистрации ассоциации файлов",
+            
+            // Окно пользовательского соглашения
+            "userAgreementTitle" => "Пользовательское соглашение",
+            "privacyAndTerms" => "Конфиденциальность и условия использования",
+            "localDataStorage" => "Локальное хранение данных",
+            "localDataStorageText" => "Все ваши данные, включая проекты, настройки и параметры, хранятся локально на вашем компьютере. Никакие данные не передаются на внешние серверы или облачные сервисы. Ваша творческая работа остаётся полностью под вашим контролем и на вашем устройстве.",
+            "providedAsIs" => "Предоставляется «Как Есть»",
+            "providedAsIsText" => "Это приложение предоставляется «как есть» без каких-либо гарантий, явных или подразумеваемых. Автор не гарантирует, что программное обеспечение будет безошибочным или бесперебойным. Использование этого программного обеспечения на ваш собственный риск.",
+            "acceptanceOfTerms" => "Принятие условий",
+            "acceptanceOfTermsText" => "Используя Insait Draw H, вы подтверждаете, что прочитали и поняли эти условия. Автор не несёт ответственности за любые прямые, косвенные, случайные или последующие убытки, возникающие в результате использования этого программного обеспечения.",
+            "iUnderstand" => "Понятно",
+            "authorCopyright" => "© 2026 Олег Курило. Все права защищены.",
             
             _ => key
         };

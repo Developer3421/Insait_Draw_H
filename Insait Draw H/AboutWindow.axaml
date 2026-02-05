@@ -71,6 +71,24 @@
                        Foreground="#FF909090"
                        HorizontalAlignment="Center"/>
 
+            <!-- File Association Button -->
+            <Button Name="FileAssociationButton" Content="Register .insd File Association" 
+                    HorizontalAlignment="Center"
+                    Padding="20,8"
+                    FontSize="12"
+                    Background="#FF4A90D9"
+                    Foreground="White"
+                    CornerRadius="6"
+                    Click="FileAssociationButton_OnClick"/>
+            
+            <!-- File Association Status -->
+            <TextBlock Name="FileAssociationStatus" Text="" 
+                       FontSize="11" 
+                       Foreground="#FF4CAF50"
+                       HorizontalAlignment="Center"
+                       TextWrapping="Wrap"
+                       MaxWidth="360"/>
+
             <!-- Close Button -->
             <Button Name="CloseButton" Content="Close" 
                     HorizontalAlignment="Center"

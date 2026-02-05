@@ -3,7 +3,7 @@ import { useLanguageStore } from '../stores/languageStore';
 import { useCallback, useEffect } from 'react';
 import { useCanvasHistory, getHistoryManager } from '../hooks/useCanvasHistory';
 import { getPageBounds } from '../hooks/useArtboard';
-import { saveAsINSD, loadFromINSD, downloadBlob } from '../utils/insdFile';
+import { saveAsINSD, loadFromINSD } from '../utils/insdFile';
 import { optimizeBatchForGPU } from '../utils/fabricGpuConfig';
 import './ActionsBar.css';
 
@@ -83,7 +83,7 @@ export function ActionsBar() {
     link.click();
   };
 
-  const handleSaveJSON = async () => {
+  const handleSaveJSON = useCallback(async () => {
     if (!canvas) return;
     
     try {
@@ -99,24 +99,71 @@ export function ActionsBar() {
         title: `insait-draw-${Date.now()}`,
       });
       
-      downloadBlob(blob, `insait-draw-${Date.now()}.insd`);
+      // Конвертуємо blob в base64 для передачі через API
+      const arrayBuffer = await blob.arrayBuffer();
+      const base64Content = btoa(
+        new Uint8Array(arrayBuffer).reduce((data, byte) => data + String.fromCharCode(byte), '')
+      );
+      
+      // Спробуємо використати нативний діалог збереження (Avalonia)
+      // Це також реєструє асоціацію файлів при першому збереженні
+      try {
+        const response = await fetch('/api/save-file', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            fileName: `insait-draw-${Date.now()}`,
+            extension: 'insd',
+            content: base64Content,
+          }),
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          console.log('File saved via native dialog:', result.path);
+          return; // Успішно збережено через нативний діалог
+        } else if (result.cancelled) {
+          console.log('Save cancelled by user');
+          return; // Користувач скасував
+        }
+        // Якщо помилка - fallback до браузерного завантаження
+      } catch (apiError) {
+        console.warn('Native save dialog not available, using browser download:', apiError);
+      }
+      
+      // Fallback: завантажуємо через браузер
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `insait-draw-${Date.now()}.insd`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
     } catch (err) {
       console.error('Error saving document:', err);
       alert(t('saveError') + (err.message || err));
     }
-  };
+  }, [canvas, t]);
 
-  const handleLoadJSON = () => {
+  const handleLoadJSON = async () => {
+    if (!canvas) return;
+    
+    // Створюємо прихований file input для вибору файлів через браузерний діалог
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.insd,.json';
+    input.style.display = 'none';
+    
     input.onchange = async (e) => {
-      const file = e.target.files[0];
-      if (!file || !canvas) return;
+      const file = e.target.files?.[0];
+      if (!file) return;
       
       try {
-        // Перевіряємо розширення файлу
-        const isInsd = file.name.toLowerCase().endsWith('.insd');
+        const fileName = file.name;
+        const isInsd = fileName.toLowerCase().endsWith('.insd');
         
         if (isInsd) {
           // Завантажуємо .insd файл
@@ -165,40 +212,38 @@ export function ActionsBar() {
           
         } else {
           // Завантажуємо старий JSON формат для сумісності
-          const reader = new FileReader();
-          reader.onload = (event) => {
-            try {
-              const json = JSON.parse(event.target.result);
-              
-              // Disable auto-rendering during load for GPU optimization
-              const wasRenderOnAddRemove = canvas.renderOnAddRemove;
-              canvas.renderOnAddRemove = false;
-              
-              canvas.loadFromJSON(json, () => {
-                // Apply GPU optimization to loaded objects
-                const loadedObjects = canvas.getObjects().filter(obj => !obj.data?.isPageElement);
-                if (loadedObjects.length > 10) {
-                  optimizeBatchForGPU(loadedObjects, canvas);
-                }
-                
-                // Restore rendering and render
-                canvas.renderOnAddRemove = wasRenderOnAddRemove;
-                canvas.requestRenderAll();
-                
-                const { syncLayersFromCanvas } = useEditorStore.getState();
-                syncLayersFromCanvas();
-              });
-            } catch (err) {
-              alert(t('loadError') + err.message);
+          const text = await file.text();
+          const json = JSON.parse(text);
+          
+          // Disable auto-rendering during load for GPU optimization
+          const wasRenderOnAddRemove = canvas.renderOnAddRemove;
+          canvas.renderOnAddRemove = false;
+          
+          canvas.loadFromJSON(json, () => {
+            // Apply GPU optimization to loaded objects
+            const loadedObjects = canvas.getObjects().filter(obj => !obj.data?.isPageElement);
+            if (loadedObjects.length > 10) {
+              optimizeBatchForGPU(loadedObjects, canvas);
             }
-          };
-          reader.readAsText(file);
+            
+            // Restore rendering and render
+            canvas.renderOnAddRemove = wasRenderOnAddRemove;
+            canvas.requestRenderAll();
+            
+            const { syncLayersFromCanvas } = useEditorStore.getState();
+            syncLayersFromCanvas();
+          });
         }
       } catch (err) {
         console.error('Error loading document:', err);
         alert(t('loadError') + (err.message || err));
       }
+      
+      // Очищаємо input
+      document.body.removeChild(input);
     };
+    
+    document.body.appendChild(input);
     input.click();
   };
 
@@ -331,15 +376,22 @@ export function ActionsBar() {
         e.preventDefault();
         handleRedo();
       }
+      
+      // Ctrl+S - Save
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        handleSaveJSON();
+      }
     };
     
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleCopySelected, handlePaste, handleDeleteSelected, handleUndo, handleRedo]);
+  }, [handleCopySelected, handlePaste, handleDeleteSelected, handleUndo, handleRedo, handleSaveJSON]);
 
   // Use historyState from store for reactive UI updates
   const canUndoBtn = historyState?.canUndo ?? canUndo;
   const canRedoBtn = historyState?.canRedo ?? canRedo;
+
 
   return (
     <div className="actions-bar">

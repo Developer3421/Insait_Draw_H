@@ -55,6 +55,19 @@ export const TOOLS = {
   CURVATURE: 'curvature',       // Інструмент кривизни - автоматичні плавні криві
   ANCHOR_POINT: 'anchor_point', // Редагування опорних точок
   DIRECT_SELECT: 'direct_select', // Пряме виділення - вибір окремих точок/handles
+  // Professional shape tools - як в CorelDRAW / Adobe Illustrator
+  STAR: 'star',                   // Зірка - регулярна зірка з налаштовуваною кількістю променів
+  ELLIPSE: 'ellipse',             // Еліпс - справжній еліпс (не коло)
+  ARROW: 'arrow',                 // Стрілка - лінія зі стрілкою на кінці
+  SPIRAL: 'spiral',               // Спіраль - Архімедова або логарифмічна спіраль
+  HEART: 'heart',                 // Серце - символ серця
+  ROUNDED_RECT: 'rounded_rect',   // Заокруглений прямокутник
+  DIAMOND: 'diamond',             // Ромб
+  HEXAGON: 'hexagon',             // Шестикутник
+  CROSS: 'cross',                 // Хрест / плюс
+  ARC: 'arc',                     // Дуга
+  CALLOUT: 'callout',             // Виноска / бульбашка
+  GEAR: 'gear',                   // Шестерня
 };
 
 // Типи boolean операцій

@@ -12,8 +12,23 @@ import {
   HANDLE_SIZES 
 } from '../utils/pathEditor';
 import { cleanupGPUResources, optimizeObjectForGPU } from '../utils/fabricGpuConfig';
+import {
+  generateStarPath,
+  generatePolygonPath,
+  generateArrowPath,
+  generateSpiralPath,
+  generateHeartPath,
+  generateRoundedRectPath,
+  generateDiamondPath,
+  generateHexagonPath,
+  generateCrossPath,
+  generateArcPath,
+  generateCalloutPath,
+  generateGearPath,
+  SHAPE_DEFAULTS,
+} from '../utils/shapeGenerators';
 
-const { Canvas, Rect, Circle, Triangle, Line, IText, PencilBrush, Path } = fabric;
+const { Canvas, Rect, Circle, Triangle, Line, IText, PencilBrush, Path, Ellipse } = fabric;
 
 export function useFabricCanvas(canvasRef, containerRef) {
   const fabricCanvasRef = useRef(null);
@@ -604,7 +619,10 @@ export function useFabricCanvas(canvasRef, containerRef) {
       }
       
       // Drawing shapes - only start if not clicking on an existing object
-      if ([TOOLS.RECTANGLE, TOOLS.CIRCLE, TOOLS.TRIANGLE, TOOLS.LINE].includes(activeTool)) {
+      if ([TOOLS.RECTANGLE, TOOLS.CIRCLE, TOOLS.TRIANGLE, TOOLS.LINE,
+           TOOLS.STAR, TOOLS.POLYGON, TOOLS.ELLIPSE, TOOLS.ARROW,
+           TOOLS.SPIRAL, TOOLS.HEART, TOOLS.ROUNDED_RECT, TOOLS.DIAMOND,
+           TOOLS.HEXAGON, TOOLS.CROSS, TOOLS.ARC, TOOLS.CALLOUT, TOOLS.GEAR].includes(activeTool)) {
         // Check if clicking on an existing object
         if (opt.target) {
           // If there's a target object, don't start drawing - let Fabric handle selection
@@ -854,6 +872,240 @@ export function useFabricCanvas(canvasRef, containerRef) {
               evented: false,
             });
           }
+        } else if (activeTool === TOOLS.ELLIPSE) {
+          // Еліпс з незалежними радіусами
+          const width = Math.abs(endX - startX);
+          const height = Math.abs(endY - startY);
+          if (width > 2 && height > 2) {
+            shape = new Ellipse({
+              left: Math.min(startX, endX),
+              top: Math.min(startY, endY),
+              rx: width / 2,
+              ry: height / 2,
+              fill: fillColor,
+              stroke: strokeColor,
+              strokeWidth: strokeWidth,
+              selectable: false,
+              evented: false,
+            });
+          }
+        } else if (activeTool === TOOLS.STAR) {
+          // Зірка
+          const width = Math.abs(endX - startX);
+          const height = Math.abs(endY - startY);
+          const size = Math.max(width, height);
+          if (size > 5) {
+            const cx = startX + (endX - startX) / 2;
+            const cy = startY + (endY - startY) / 2;
+            const outerRadius = size / 2;
+            const innerRadius = outerRadius * SHAPE_DEFAULTS.star.innerRadiusRatio;
+            const pathData = generateStarPath(cx, cy, outerRadius, innerRadius, SHAPE_DEFAULTS.star.points);
+            shape = new Path(pathData, {
+              fill: fillColor,
+              stroke: strokeColor,
+              strokeWidth: strokeWidth,
+              selectable: false,
+              evented: false,
+            });
+          }
+        } else if (activeTool === TOOLS.POLYGON) {
+          // Полігон
+          const width = Math.abs(endX - startX);
+          const height = Math.abs(endY - startY);
+          const size = Math.max(width, height);
+          if (size > 5) {
+            const cx = startX + (endX - startX) / 2;
+            const cy = startY + (endY - startY) / 2;
+            const pathData = generatePolygonPath(cx, cy, size / 2, SHAPE_DEFAULTS.polygon.sides);
+            shape = new Path(pathData, {
+              fill: fillColor,
+              stroke: strokeColor,
+              strokeWidth: strokeWidth,
+              selectable: false,
+              evented: false,
+            });
+          }
+        } else if (activeTool === TOOLS.HEXAGON) {
+          // Шестикутник
+          const width = Math.abs(endX - startX);
+          const height = Math.abs(endY - startY);
+          const size = Math.max(width, height);
+          if (size > 5) {
+            const cx = startX + (endX - startX) / 2;
+            const cy = startY + (endY - startY) / 2;
+            const pathData = generateHexagonPath(cx, cy, size / 2);
+            shape = new Path(pathData, {
+              fill: fillColor,
+              stroke: strokeColor,
+              strokeWidth: strokeWidth,
+              selectable: false,
+              evented: false,
+            });
+          }
+        } else if (activeTool === TOOLS.DIAMOND) {
+          // Ромб
+          const width = Math.abs(endX - startX);
+          const height = Math.abs(endY - startY);
+          if (width > 5 && height > 5) {
+            const cx = startX + (endX - startX) / 2;
+            const cy = startY + (endY - startY) / 2;
+            const pathData = generateDiamondPath(cx, cy, width, height);
+            shape = new Path(pathData, {
+              fill: fillColor,
+              stroke: strokeColor,
+              strokeWidth: strokeWidth,
+              selectable: false,
+              evented: false,
+            });
+          }
+        } else if (activeTool === TOOLS.HEART) {
+          // Серце
+          const width = Math.abs(endX - startX);
+          const height = Math.abs(endY - startY);
+          const size = Math.max(width, height);
+          if (size > 10) {
+            const cx = startX + (endX - startX) / 2;
+            const cy = startY + (endY - startY) / 2;
+            const pathData = generateHeartPath(cx, cy, size);
+            shape = new Path(pathData, {
+              fill: fillColor,
+              stroke: strokeColor,
+              strokeWidth: strokeWidth,
+              selectable: false,
+              evented: false,
+            });
+          }
+        } else if (activeTool === TOOLS.SPIRAL) {
+          // Спіраль
+          const width = Math.abs(endX - startX);
+          const height = Math.abs(endY - startY);
+          const size = Math.max(width, height);
+          if (size > 20) {
+            const cx = startX + (endX - startX) / 2;
+            const cy = startY + (endY - startY) / 2;
+            const startRadius = size * SHAPE_DEFAULTS.spiral.startRadiusRatio;
+            const endRadius = size / 2;
+            const pathData = generateSpiralPath(cx, cy, startRadius, endRadius, SHAPE_DEFAULTS.spiral.turns);
+            shape = new Path(pathData, {
+              fill: 'transparent', // Спіраль без заливки
+              stroke: strokeColor,
+              strokeWidth: strokeWidth,
+              selectable: false,
+              evented: false,
+            });
+          }
+        } else if (activeTool === TOOLS.CROSS) {
+          // Хрест
+          const width = Math.abs(endX - startX);
+          const height = Math.abs(endY - startY);
+          const size = Math.max(width, height);
+          if (size > 10) {
+            const cx = startX + (endX - startX) / 2;
+            const cy = startY + (endY - startY) / 2;
+            const pathData = generateCrossPath(cx, cy, size, SHAPE_DEFAULTS.cross.thicknessRatio);
+            shape = new Path(pathData, {
+              fill: fillColor,
+              stroke: strokeColor,
+              strokeWidth: strokeWidth,
+              selectable: false,
+              evented: false,
+            });
+          }
+        } else if (activeTool === TOOLS.ROUNDED_RECT) {
+          // Заокруглений прямокутник
+          const width = Math.abs(endX - startX);
+          const height = Math.abs(endY - startY);
+          if (width > 5 && height > 5) {
+            const x = Math.min(startX, endX);
+            const y = Math.min(startY, endY);
+            const cornerRadius = Math.min(width, height) * SHAPE_DEFAULTS.roundedRect.cornerRadiusRatio;
+            const pathData = generateRoundedRectPath(x, y, width, height, cornerRadius);
+            shape = new Path(pathData, {
+              fill: fillColor,
+              stroke: strokeColor,
+              strokeWidth: strokeWidth,
+              selectable: false,
+              evented: false,
+            });
+          }
+        } else if (activeTool === TOOLS.ARROW) {
+          // Стрілка
+          const length = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
+          if (length > 20) {
+            const headLength = length * SHAPE_DEFAULTS.arrow.headLengthRatio;
+            const headWidth = length * SHAPE_DEFAULTS.arrow.headWidthRatio;
+            const shaftWidth = length * SHAPE_DEFAULTS.arrow.shaftWidthRatio;
+            const pathData = generateArrowPath(startX, startY, endX, endY, headLength, headWidth, shaftWidth);
+            shape = new Path(pathData, {
+              fill: fillColor,
+              stroke: strokeColor,
+              strokeWidth: strokeWidth,
+              selectable: false,
+              evented: false,
+            });
+          }
+        } else if (activeTool === TOOLS.ARC) {
+          // Дуга
+          const width = Math.abs(endX - startX);
+          const height = Math.abs(endY - startY);
+          const size = Math.max(width, height);
+          if (size > 10) {
+            const cx = startX;
+            const cy = startY;
+            const radius = Math.sqrt(Math.pow(endX - startX, 2) + Math.pow(endY - startY, 2));
+            // Кут визначається напрямком від центру до курсору
+            const endAngle = Math.atan2(endY - startY, endX - startX);
+            const startAngle = endAngle - SHAPE_DEFAULTS.arc.sweepAngle;
+            const pathData = generateArcPath(cx, cy, radius, startAngle, endAngle, SHAPE_DEFAULTS.arc.pie);
+            shape = new Path(pathData, {
+              fill: SHAPE_DEFAULTS.arc.pie ? fillColor : 'transparent',
+              stroke: strokeColor,
+              strokeWidth: strokeWidth,
+              selectable: false,
+              evented: false,
+            });
+          }
+        } else if (activeTool === TOOLS.GEAR) {
+          // Шестерня
+          const width = Math.abs(endX - startX);
+          const height = Math.abs(endY - startY);
+          const size = Math.max(width, height);
+          if (size > 30) {
+            const cx = startX + (endX - startX) / 2;
+            const cy = startY + (endY - startY) / 2;
+            const outerRadius = size / 2;
+            const innerRadius = outerRadius * SHAPE_DEFAULTS.gear.innerRadiusRatio;
+            const holeRadius = outerRadius * SHAPE_DEFAULTS.gear.holeRadiusRatio;
+            const pathData = generateGearPath(cx, cy, outerRadius, innerRadius, holeRadius, SHAPE_DEFAULTS.gear.teeth);
+            shape = new Path(pathData, {
+              fill: fillColor,
+              stroke: strokeColor,
+              strokeWidth: strokeWidth,
+              selectable: false,
+              evented: false,
+              fillRule: 'evenodd', // Для правильного відображення отвору
+            });
+          }
+        } else if (activeTool === TOOLS.CALLOUT) {
+          // Виноска
+          const width = Math.abs(endX - startX);
+          const height = Math.abs(endY - startY);
+          if (width > 30 && height > 30) {
+            const x = Math.min(startX, endX);
+            const y = Math.min(startY, endY);
+            // Хвіст виноски вказує вниз-ліворуч
+            const tailX = x + width * 0.2;
+            const tailY = y + height + height * SHAPE_DEFAULTS.callout.tailLengthRatio;
+            const tailWidth = width * SHAPE_DEFAULTS.callout.tailWidthRatio;
+            const pathData = generateCalloutPath(x, y, width, height, tailX, tailY, tailWidth);
+            shape = new Path(pathData, {
+              fill: fillColor,
+              stroke: strokeColor,
+              strokeWidth: strokeWidth,
+              selectable: false,
+              evented: false,
+            });
+          }
         }
         
         if (shape) {
@@ -993,7 +1245,10 @@ export function useFabricCanvas(canvasRef, containerRef) {
         if (state.activeTool === TOOLS.PAN) {
           canvas.defaultCursor = 'grab';
           canvas.hoverCursor = 'grab';
-        } else if ([TOOLS.RECTANGLE, TOOLS.CIRCLE, TOOLS.TRIANGLE, TOOLS.LINE].includes(state.activeTool)) {
+        } else if ([TOOLS.RECTANGLE, TOOLS.CIRCLE, TOOLS.TRIANGLE, TOOLS.LINE,
+                    TOOLS.STAR, TOOLS.POLYGON, TOOLS.ELLIPSE, TOOLS.ARROW,
+                    TOOLS.SPIRAL, TOOLS.HEART, TOOLS.ROUNDED_RECT, TOOLS.DIAMOND,
+                    TOOLS.HEXAGON, TOOLS.CROSS, TOOLS.ARC, TOOLS.CALLOUT, TOOLS.GEAR].includes(state.activeTool)) {
           canvas.defaultCursor = 'crosshair';
           canvas.hoverCursor = 'crosshair';
         } else if (state.activeTool === TOOLS.TEXT) {
